@@ -13,7 +13,7 @@ Item {
     id: root
     property int margin: 10
 
-    Component.onCompleted: ResourceUsage.ensureRunning()
+    property QtObject resourceMonitor: ResourceUsageMonitor { target: root }
 
     // Style tokens
     readonly property color colText: Appearance.angelEverywhere ? Appearance.angel.colText

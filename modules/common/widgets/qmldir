@@ -95,6 +95,7 @@ PointingHandInteraction 1.0 PointingHandInteraction.qml
 PointingHandLinkHover 1.0 PointingHandLinkHover.qml
 PopupToolTip 1.0 PopupToolTip.qml
 ResourceCard 1.0 ResourceCard.qml
+ResourceUsageMonitor 1.0 ResourceUsageMonitor.qml
 RicelinSurface 1.0 RicelinSurface.qml
 Revealer 1.0 Revealer.qml
 RegaliaControlFace 1.0 RegaliaControlFace.qml

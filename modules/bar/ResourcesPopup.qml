@@ -7,10 +7,7 @@ import QtQuick.Layouts
 StyledPopup {
     id: popup
 
-    onActiveChanged: {
-        if (popup.active)
-            ResourceUsage.ensureRunning()
-    }
+    property QtObject resourceMonitor: ResourceUsageMonitor { active: popup.active }
 
     component ResourceItem: RowLayout {
         id: resourceItem

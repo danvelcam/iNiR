@@ -11,6 +11,7 @@ import qs.modules.common.functions
 // la placa con esquina cortada de las cards; en el resto, el color de capa correcto.
 PanelSurface {
     id: root
+    property QtObject resourceMonitor: ResourceUsageMonitor { target: root }
     islandSkin: (Config.options?.controlPanel?.style ?? "panel") === "island"
     Layout.fillWidth: true
     implicitHeight: statsRow.implicitHeight + 12

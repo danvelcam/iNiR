@@ -64,10 +64,9 @@ Singleton {
     }
 
     function updateMemoryUsageHistory() {
-        memoryUsageHistory = [...memoryUsageHistory, memoryUsedPercentage];
-        if (memoryUsageHistory.length > historyLength) {
-            memoryUsageHistory.shift();
-        }
+        const next = [...memoryUsageHistory, memoryUsedPercentage];
+        if (next.length > historyLength) next.shift();
+        memoryUsageHistory = next;
     }
 
     Process {
@@ -148,28 +147,24 @@ Singleton {
         }
     }
     function updateSwapUsageHistory() {
-        swapUsageHistory = [...swapUsageHistory, swapUsedPercentage];
-        if (swapUsageHistory.length > historyLength) {
-            swapUsageHistory.shift();
-        }
+        const next = [...swapUsageHistory, swapUsedPercentage];
+        if (next.length > historyLength) next.shift();
+        swapUsageHistory = next;
     }
     function updateCpuUsageHistory() {
-        cpuUsageHistory = [...cpuUsageHistory, cpuUsage];
-        if (cpuUsageHistory.length > historyLength) {
-            cpuUsageHistory.shift();
-        }
+        const next = [...cpuUsageHistory, cpuUsage];
+        if (next.length > historyLength) next.shift();
+        cpuUsageHistory = next;
     }
     function updateGpuUsageHistory() {
-        gpuUsageHistory = [...gpuUsageHistory, gpuUsage];
-        if (gpuUsageHistory.length > historyLength) {
-            gpuUsageHistory.shift();
-        }
+        const next = [...gpuUsageHistory, gpuUsage];
+        if (next.length > historyLength) next.shift();
+        gpuUsageHistory = next;
     }
     function updateGpuTempHistory() {
-        gpuTempHistory = [...gpuTempHistory, gpuTempPercentage];
-        if (gpuTempHistory.length > historyLength) {
-            gpuTempHistory.shift();
-        }
+        const next = [...gpuTempHistory, gpuTempPercentage];
+        if (next.length > historyLength) next.shift();
+        gpuTempHistory = next;
     }
     function updateHistories() {
         updateMemoryUsageHistory();
@@ -240,8 +235,6 @@ Singleton {
     }
 
     function _pollSensors(): void {
-        autoStopTimer.restart();
-
         fileMeminfo.reload();
         fileStat.reload();
         if (root._cpuTempPath !== "") { fileCpuTemp.reload(); fileCpuTemp.text(); }
