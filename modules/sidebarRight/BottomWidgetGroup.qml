@@ -270,7 +270,7 @@ Rectangle {
             Layout.fillWidth: false
             Layout.leftMargin: 10
             Layout.topMargin: 10
-            width: tabBar.implicitWidth + 5
+            implicitWidth: tabBar.implicitWidth + 5
 
             // Collapse button (Fixed at top)
             CalendarHeaderButton {
