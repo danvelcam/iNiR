@@ -9,7 +9,16 @@ import QtQuick.Layouts
 Item {
     id: root
 
-    implicitWidth: Appearance.sizes.osdWidth + 2 * Appearance.sizes.elevationMargin
+    // Translated strings ("Bloqueo de mayúsculas activado") are far wider than the
+    // fixed osdWidth, and clip:true silently cut them off. Grow with the text instead,
+    // keeping osdWidth as the floor so short strings still get the usual pill.
+    readonly property real minWidth: Appearance.sizes.osdWidth + 2 * Appearance.sizes.elevationMargin
+    readonly property real maxWidth: Math.round(Screen.width * 0.5)
+    readonly property real contentImplicitWidth: contentRow.implicitWidth
+        + contentRow.anchors.leftMargin + contentRow.anchors.rightMargin
+        + 2 * Appearance.sizes.elevationMargin
+
+    implicitWidth: Math.min(root.maxWidth, Math.max(root.minWidth, root.contentImplicitWidth))
     implicitHeight: card.implicitHeight + 2 * Appearance.sizes.elevationMargin
     clip: true
 
@@ -71,6 +80,8 @@ Item {
             StyledText {
                 Layout.fillWidth: true
                 text: KeyboardIndicators.popupText
+                // Only reachable past maxWidth; without it the overflow is cut blind.
+                elide: Text.ElideRight
                 font.pixelSize: Appearance.font.pixelSize.normal
                 color: Appearance.angelEverywhere ? Appearance.angel.colText
                      : Appearance.inirEverywhere ? Appearance.inir.colText
