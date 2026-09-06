@@ -25,7 +25,15 @@ MaterialShape { // App icon
     readonly property string hintedIcon: imageIsIconHint ? imageValue.substring(13) : ""
     readonly property string appIconValue: String(appIcon ?? "").trim()
     readonly property bool appIconIsFileUrl: appIconValue.startsWith("file://")
-    readonly property string effectiveAppIcon: appIconValue.length > 0 ? appIconValue : hintedIcon
+    // Quickshell.iconPath() takes an icon name or a local path; a file:// URL never
+    // resolves and silently falls back to the theme's image-missing glyph.
+    readonly property string appIconLocalPath: appIconIsFileUrl
+        ? appIconValue.substring(7) : appIconValue
+    // Chromium puts the app logo in app_icon and the notification's own artwork -- for
+    // a chat message, the sender's avatar -- in the image-path hint. The artwork is the
+    // more specific of the two, so it wins.
+    readonly property string effectiveAppIcon: hintedIcon.length > 0
+        ? hintedIcon : appIconLocalPath
     readonly property string defaultMaterialSymbol: NotificationUtils.findSuitableMaterialSymbol("")
     readonly property string guessedMaterialSymbol: NotificationUtils.findSuitableMaterialSymbol(String(summary ?? ""))
     readonly property bool preferMaterialSymbol: guessedMaterialSymbol !== defaultMaterialSymbol
@@ -76,6 +84,19 @@ MaterialShape { // App icon
             implicitSize: root.appIconSize
             asynchronous: true
             source: Quickshell.iconPath(root.effectiveAppIcon, "image-missing")
+
+            // Artwork sent by the notification (a chat avatar, say) is a plain photo
+            // with hard corners. Soften them so it doesn't sit as a square block.
+            layer.enabled: true
+            layer.effect: OpacityMask {
+                maskSource: Rectangle {
+                    width: appIconImage.width
+                    height: appIconImage.height
+                    // Proportional: a fixed token (rounding.small is 12) turns a 24px
+                    // avatar into a full circle instead of just softening its corners.
+                    radius: Math.max(2, Math.round(Math.min(width, height) * 0.22))
+                }
+            }
         }
     }
     Loader {

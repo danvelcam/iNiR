@@ -37,6 +37,12 @@ Item { // Notification item area
             || String(value).toLowerCase() === "critical"
     }
 
+    // Set by NotificationGroup when the group holds several notifications: each card
+    // then carries its sender's artwork instead of sharing one icon column.
+    property bool showOwnIcon: false
+    readonly property string ownArtwork: String(root.notificationObject?.image ?? "")
+    readonly property bool showsOwnIcon: root.showOwnIcon && root.expanded
+        && root.ownArtwork.length > 0
     readonly property string notificationSummaryText: String(root.notificationObject?.summary ?? "")
     readonly property bool hasNotificationActions: (root.notificationObject?.actions?.length ?? 0) > 0
     readonly property string processedNotificationBodyText: {
@@ -193,12 +199,28 @@ Item { // Notification item area
             }
         }
 
+        NotificationAppIcon { // Own artwork, grouped notifications only
+            id: ownIcon
+            visible: root.showsOwnIcon
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.margins: root.padding
+            implicitSize: 30
+            image: root.ownArtwork
+            appIcon: root.notificationObject?.appIcon ?? ""
+            summary: root.notificationSummaryText
+            urgency: root.notificationObject?.urgency ?? NotificationUrgency.Normal
+        }
+
         ColumnLayout { // Content column
             id: contentColumn
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: expanded ? root.padding : 0
+            // A card without its own artwork keeps no gutter: it sits flush instead.
+            anchors.leftMargin: (expanded ? root.padding : 0)
+                + (ownIcon.visible ? ownIcon.implicitSize + 8 : 0)
             spacing: 3
 
             Behavior on anchors.margins {

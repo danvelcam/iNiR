@@ -282,6 +282,9 @@ MouseArea { // Notification group area
             spacing: 10
 
             NotificationAppIcon { // Icons
+                // With several notifications each card carries its own artwork, so this
+                // shared column would only indent every card behind an empty gutter.
+                visible: !root.multipleNotifications
                 Layout.alignment: Qt.AlignTop
                 Layout.fillWidth: false
                 image: root?.multipleNotifications ? "" : notificationGroup?.notifications[0]?.image ?? ""
@@ -316,6 +319,16 @@ MouseArea { // Notification group area
                         anchors.right: expandButton.left
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 5
+                        NotificationAppIcon { // App identity, only while the shared column is hidden
+                            visible: root.multipleNotifications
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.fillWidth: false
+                            implicitSize: 20
+                            materialIconScale: 0.7
+                            appIconScale: 1
+                            appIcon: root.notificationGroup?.appIcon
+                            summary: root.notificationGroup?.notifications[root.notificationCount - 1]?.summary
+                        }
                         StyledText {
                             id: appName
                             elide: Text.ElideRight
@@ -400,6 +413,7 @@ MouseArea { // Notification group area
                         notificationObject: modelData
                         expanded: root.expanded
                         popup: root.popup
+                        showOwnIcon: root.multipleNotifications
                         onlyNotification: (root.notificationCount === 1)
                         opacity: (!root.expanded && index == 1 && root.notificationCount > 2) ? 0.5 : 1
                         visible: root.expanded || (index < 2)
