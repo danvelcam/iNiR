@@ -44,7 +44,22 @@ Item { // Notification item area
     readonly property bool showsOwnIcon: root.showOwnIcon && root.expanded
         && root.ownArtwork.length > 0
     readonly property string notificationSummaryText: String(root.notificationObject?.summary ?? "")
-    readonly property bool hasNotificationActions: (root.notificationObject?.actions?.length ?? 0) > 0
+    readonly property var notificationActions: Array.from(root.notificationObject?.actions ?? [])
+    readonly property var labeledNotificationActions: root.notificationActions
+        .filter(action => String(action?.text ?? "").trim().length > 0)
+    // Senders that follow the freedesktop spec declare the "default" action with a
+    // blank label, since it is meant to be triggered by activating the notification.
+    // kitty (Claude Code) does exactly that, so render those as a tick icon button
+    // instead of an empty text button.
+    readonly property var iconNotificationActions: root.notificationActions
+        .filter(action => String(action?.text ?? "").trim().length === 0)
+    readonly property bool hasNotificationActions: root.labeledNotificationActions.length > 0
+    // Close + copy + every unlabeled action share the row evenly when no labeled action
+    // is competing for the space.
+    readonly property int iconButtonCount: root.iconNotificationActions.length + 2
+    readonly property real iconButtonWidth: Math.max(0,
+        actionsFlickable.width - actionRowLayout.spacing * (root.iconButtonCount - 1))
+        / root.iconButtonCount
     readonly property string processedNotificationBodyText: {
         if (!root.notificationObject) return ""
         const body = String(root.notificationObject.body ?? "")
@@ -327,7 +342,7 @@ Item { // Notification item area
                         id: actionsFlickable
                         anchors.fill: parent
                         implicitHeight: actionRowLayout.implicitHeight
-                        contentWidth: actionRowLayout.implicitWidth
+                        contentWidth: actionRowLayout.width
 
                         Behavior on opacity {
                             enabled: Appearance.animationsEnabled
@@ -346,12 +361,18 @@ Item { // Notification item area
                             id: actionRowLayout
                             Layout.alignment: Qt.AlignBottom
                             spacing: 4
+                            // Inside a Flickable the layout would size itself to its
+                            // implicit width, leaving Layout.fillWidth children nothing
+                            // to stretch into and bunching the row up on the left.
+                            // Fill the row instead, and only overflow (scroll) when the
+                            // buttons genuinely don't fit.
+                            width: Math.max(actionsFlickable.width, implicitWidth)
 
                             NotificationActionButton {
                                 Layout.fillWidth: true
                                 buttonText: Translation.tr("Close")
                                 urgency: root.notificationObject?.urgency ?? NotificationUrgency.Normal
-                                implicitWidth: !root.hasNotificationActions ? (Math.max(0, actionsFlickable.width - actionRowLayout.spacing) / 2) :
+                                implicitWidth: !root.hasNotificationActions ? root.iconButtonWidth :
                                     ((contentItem?.implicitWidth ?? 0) + (leftPadding ?? 0) + (rightPadding ?? 0))
 
                                 onClicked: {
@@ -370,7 +391,7 @@ Item { // Notification item area
 
                             Repeater {
                                 id: actionRepeater
-                                model: notificationObject?.actions ?? []
+                                model: root.labeledNotificationActions
                                 NotificationActionButton {
                                     required property var modelData
                                     Layout.fillWidth: true
@@ -382,10 +403,35 @@ Item { // Notification item area
                                 }
                             }
 
+                            Repeater { // Unlabeled actions, rendered as a tick icon
+                                id: iconActionRepeater
+                                model: root.iconNotificationActions
+                                NotificationActionButton {
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    urgency: root.notificationObject?.urgency ?? NotificationUrgency.Normal
+                                    implicitWidth: !root.hasNotificationActions ? root.iconButtonWidth :
+                                        ((contentItem?.implicitWidth ?? 0) + (leftPadding ?? 0) + (rightPadding ?? 0))
+
+                                    onClicked: {
+                                        Notifications.attemptInvokeAction(notificationObject.notificationId, modelData.identifier);
+                                    }
+
+                                    contentItem: MaterialSymbol {
+                                        iconSize: Appearance.font.pixelSize.larger
+                                        horizontalAlignment: Text.AlignHCenter
+                                        color: root.notificationCritical
+                                            ? Appearance.colors.colOnSecondaryContainer
+                                            : Appearance.colors.colOnLayer3
+                                        text: "check"
+                                    }
+                                }
+                            }
+
                             NotificationActionButton {
                                 Layout.fillWidth: true
                                 urgency: root.notificationObject?.urgency ?? NotificationUrgency.Normal
-                                implicitWidth: !root.hasNotificationActions ? (Math.max(0, actionsFlickable.width - actionRowLayout.spacing) / 2) :
+                                implicitWidth: !root.hasNotificationActions ? root.iconButtonWidth :
                                     ((contentItem?.implicitWidth ?? 0) + (leftPadding ?? 0) + (rightPadding ?? 0))
 
                                 onClicked: {
