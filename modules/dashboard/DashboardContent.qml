@@ -44,6 +44,7 @@ Item {
         "github": githubComponent,
         "agenda": agendaComponent,
         "notes": notesComponent,
+        "focus": focusComponent,
     })
     // Widgets that absorb the column's remaining height. Kept minimal: only the
     // notepad (a writing surface) benefits from stretching. List widgets size to
@@ -124,9 +125,10 @@ Item {
         weather:       { icon: "partly_cloudy_day", label: Translation.tr("Weather") },
         calendar:      { icon: "calendar_month",    label: Translation.tr("Calendar") },
         agenda:        { icon: "event_upcoming",    label: Translation.tr("Agenda") },
+        focus:         { icon: "timer", label: Translation.tr("Focus") },
         notes:         { icon: "edit_note",         label: Translation.tr("Notes") }
     })
-    readonly property var _allIds: ["welcome", "clock", "system", "github", "notifications", "todo", "media", "weather", "calendar", "agenda", "notes"]
+    readonly property var _allIds: ["welcome", "clock", "system", "github", "notifications", "todo", "media", "weather", "calendar", "agenda", "notes", "focus"]
     function _icon(id) { return (root._catalog[id]?.icon) ?? "widgets" }
     function _label(id) { return (root._catalog[id]?.label) ?? id }
 
@@ -244,6 +246,7 @@ Item {
     }
     Component { id: systemComponent; DashSystem {} }
     Component { id: githubComponent; DashGithub {} }
+    Component { id: focusComponent; DashFocus {} }
     Component { id: notesComponent; DashNotes {} }
     Component {
         id: agendaComponent
