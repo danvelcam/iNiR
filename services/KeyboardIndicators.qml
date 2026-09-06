@@ -330,7 +330,11 @@ Singleton {
     Process {
         id: ledDiscoveryProc
         running: false
-        command: ["/usr/bin/bash", "-lc", "printf 'capslock\\n'; for f in /sys/class/leds/*::capslock/brightness; do [ -e \"$f\" ] && printf '%s\\n' \"$f\"; done; printf 'numlock\\n'; for f in /sys/class/leds/*::numlock/brightness; do [ -e \"$f\" ] && printf '%s\\n' \"$f\"; done"]
+        // `-lc` cargaba un shell de LOGIN (/etc/profile + profile.d) en cada disparo
+        // del Timer de 8 s de la linea ~374: 91 ms de CPU medidos, frente a 1,5 ms con
+        // `-c`. La salida es byte a byte identica (mismo md5), porque printf y [ son
+        // builtins y el glob lo expande el propio shell: no hace falta PATH ni perfil.
+        command: ["/usr/bin/bash", "-c", "printf 'capslock\\n'; for f in /sys/class/leds/*::capslock/brightness; do [ -e \"$f\" ] && printf '%s\\n' \"$f\"; done; printf 'numlock\\n'; for f in /sys/class/leds/*::numlock/brightness; do [ -e \"$f\" ] && printf '%s\\n' \"$f\"; done"]
 
         stdout: StdioCollector {
             id: ledCollector
