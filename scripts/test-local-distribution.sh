@@ -1333,6 +1333,14 @@ if [[ ! -x "$preview_image_store" ]] \
     printf 'FAIL: internal window previews can leak into cliphist image history\n' >&2
     exit 1
 fi
+clipboard_startup="$runtime_root/defaults/niri/config.d/50-startup.kdl"
+clipboard_newline_migration="$runtime_root/sdata/migrations/042-cliphist-no-synthetic-newline.sh"
+if ! grep -Fq 'wl-paste --no-newline --type text --watch ~/.config/quickshell/inir/scripts/clipboard-store.py' "$clipboard_startup" \
+        || [[ ! -f "$clipboard_newline_migration" ]] \
+        || ! grep -Fq 'wl-paste --no-newline ' "$clipboard_newline_migration"; then
+    printf 'FAIL: clipboard text watcher can synthesize trailing newlines and bypass cliphist dedupe\n' >&2
+    exit 1
+fi
 if ! grep -Fq 'previewRefreshTimer' "$runtime_root/modules/dock/DockPreview.qml" \
         || ! grep -Fq 'pendingPreviewIds' "$runtime_root/modules/dock/DockPreview.qml" \
         || ! grep -Fq 'hoverDelayTimer.stop()' "$runtime_root/modules/dock/DockAppButton.qml"; then
