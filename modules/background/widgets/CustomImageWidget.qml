@@ -647,49 +647,10 @@ AbstractBackgroundWidget {
                 }
             }
 
-            GridLayout {
+            WidgetShapePicker {
                 Layout.fillWidth: true
-                columns: 4
-                columnSpacing: 4
-                rowSpacing: 4
-                Repeater {
-                    model: [
-                        { label: Translation.tr("Circle"), value: "Circle", shape: MaterialShape.Shape.Circle },
-                        { label: Translation.tr("Square"), value: "Square", shape: MaterialShape.Shape.Square },
-                        { label: Translation.tr("Cookie"), value: "Cookie4Sided", shape: MaterialShape.Shape.Cookie4Sided },
-                        { label: Translation.tr("Heart"), value: "Heart", shape: MaterialShape.Shape.Heart }
-                    ]
-                    Rectangle {
-                        id: quickShape
-                        required property var modelData
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 38
-                        radius: Appearance.rounding.small
-                        color: root.shapeName === modelData.value
-                            ? ColorUtils.applyAlpha(Appearance.colors.colPrimary, 0.16)
-                            : quickShapeHover.hovered
-                                ? Appearance.colors.colLayer2Hover : "transparent"
-                        border.width: root.shapeName === modelData.value ? 1.5 : 1
-                        border.color: root.shapeName === modelData.value
-                            ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant
-
-                        MaterialShape {
-                            anchors.centerIn: parent
-                            implicitSize: 23
-                            shape: quickShape.modelData.shape
-                            color: root.shapeName === quickShape.modelData.value
-                                ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer2
-                        }
-                        HoverHandler { id: quickShapeHover }
-                        TapHandler {
-                            onTapped: Config.setNestedValue(root._configPath + ".shape", quickShape.modelData.value)
-                        }
-                        StyledToolTip {
-                            text: quickShape.modelData.label
-                            extraVisibleCondition: quickShapeHover.hovered
-                        }
-                    }
-                }
+                selectedShape: root.shapeName
+                onShapeSelected: name => root._setOutputValue("shape", name)
             }
 
             RowLayout {

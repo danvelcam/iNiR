@@ -1817,6 +1817,68 @@ Singleton {
                         property real y: 80
                     }
 
+                    property JsonObject shape: JsonObject {
+                        property bool enable: false
+                        property string shape: "Flower"
+                        property bool outline: false
+                        property real angle: 0
+                        property real strokeWidth: 3
+                        property bool locked: false
+                        property string placementStrategy: "free"
+                        property int contentWidth: 160
+                        property int contentHeight: 160
+                        property int widgetScale: 100
+                        property int widgetOpacity: 100
+                        property bool showBackground: false
+                        property bool useBlur: false
+                        property bool showBorder: false
+                        property real backgroundOpacity: 0
+                        property real borderWidth: 0
+                        property real borderOpacity: 0.20
+                        property real cornerRadius: -1
+                        property string colorMode: "auto"
+                        property JsonObject palette: JsonObject {
+                            property string primary: "primary"
+                            property string secondary: "secondary"
+                            property string tertiary: "tertiary"
+                            property string signal: "signal"
+                            property string surface: "surface"
+                        }
+                        property int dim: 0
+                        property real x: 80
+                        property real y: 240
+                    }
+
+                    property JsonObject dateBadge: JsonObject {
+                        property bool enable: false
+                        property string style: "ticket"
+                        property bool showYear: true
+                        property bool locked: false
+                        property string placementStrategy: "free"
+                        property int contentWidth: 220
+                        property int contentHeight: 140
+                        property int widgetScale: 100
+                        property int widgetOpacity: 100
+                        property bool showBackground: true
+                        property bool useBlur: false
+                        property bool showBorder: true
+                        property real backgroundOpacity: 0.16
+                        property real borderWidth: 1
+                        property real borderOpacity: 0.20
+                        property real cornerRadius: -1
+                        property string colorMode: "auto"
+                        property JsonObject palette: JsonObject {
+                            property string primary: "primary"
+                            property string secondary: "secondary"
+                            property string tertiary: "tertiary"
+                            property string signal: "signal"
+                            property string surface: "surface"
+                        }
+                        property int dim: 0
+                        property real x: 260
+                        property real y: 80
+                    }
+
                     property JsonObject worldClock: JsonObject {
                         property bool enable: false
                         property bool locked: false

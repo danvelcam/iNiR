@@ -27,6 +27,8 @@ import qs.modules.background.widgets.notes
 import qs.modules.background.widgets.calendar
 import qs.modules.background.widgets.todo
 import qs.modules.background.widgets.timers
+import qs.modules.background.widgets.shape
+import qs.modules.background.widgets.dateBadge
 import qs.modules.background.widgets.uptime
 import qs.modules.background.widgets.worldClock
 import qs.modules.background.widgets.userCard
@@ -121,7 +123,7 @@ Scope {
                 imageConverter: false, mediaControls: false,
                 visualizer: false, systemMonitor: false, battery: false,
                 notes: false, calendarUpcoming: false, monthCalendar: false,
-                todo: false, timers: false, uptime: false,
+                todo: false, timers: false, uptime: false, shape: false, dateBadge: false,
                 newsTicker: false, mascot: false, japaneseTypography: false,
                 worldClock: false, userCard: false
             })
@@ -188,7 +190,7 @@ Scope {
         function setWidgetEnabled(widgetName: string, enabled: bool): string {
             const knownWidgets = ["weather", "clock", "customImage", "imageConverter",
                 "mediaControls", "visualizer", "systemMonitor", "battery", "notes",
-                "calendarUpcoming", "monthCalendar", "todo", "timers", "uptime",
+                "calendarUpcoming", "monthCalendar", "todo", "timers", "uptime", "shape", "dateBadge",
                 "newsTicker", "mascot", "japaneseTypography",
                 "worldClock", "userCard"];
             if (!knownWidgets.includes(widgetName))
@@ -514,6 +516,8 @@ Scope {
             { key: "todo",               defaultOn: false, icon: "checklist" },
             { key: "timers",             defaultOn: false, icon: "timer" },
             { key: "uptime",             defaultOn: false, icon: "avg_pace" },
+            { key: "shape", defaultOn: false, icon: "category" },
+            { key: "dateBadge", defaultOn: false, icon: "today" },
             { key: "newsTicker",         defaultOn: false, icon: "newspaper" },
             { key: "mascot",             defaultOn: false, icon: "pets" },
             { key: "japaneseTypography", defaultOn: false, icon: "translate" },
@@ -2507,6 +2511,8 @@ Scope {
                                     { key: "todo", icon: "checklist", label: "Todo", defaultOn: false },
                                     { key: "timers", icon: "timer", label: "Timers", defaultOn: false },
                                     { key: "uptime", icon: "avg_pace", label: "System Uptime", defaultOn: false },
+                                    { key: "shape", icon: "category", label: "Decorative shape", defaultOn: false },
+                                    { key: "dateBadge", icon: "today", label: "Date badge", defaultOn: false },
                                     { key: "mascot", icon: "pets", label: "Mascot", defaultOn: false },
                                     { key: "newsTicker", icon: "newspaper", label: "News Ticker", defaultOn: false },
                                     { key: "worldClock", icon: "public", label: "World Clock", defaultOn: false },
@@ -2972,6 +2978,39 @@ Scope {
                 }
 
                 FadeLoader {
+                    shown: bgRoot._widgetEnabled("shape", false)
+                    z: item?.desktopStackZ ?? 0
+                    containmentMask: GlobalStates.widgetEditMode ? _hitMaskshape : null
+                    Item { id: _hitMaskshape; x: parent?.item?.editInputX ?? -8; y: parent?.item?.editInputY ?? -8; width: parent?.item?.editInputWidth ?? ((parent?.width ?? 0) + 16); height: parent?.item?.editInputHeight ?? ((parent?.height ?? 0) + 16) }
+                    sourceComponent: ShapeWidget {
+                        widgetIndex: 20
+                        outputName: bgRoot.screen?.name ?? ""
+                        screenWidth: bgRoot.screen.width
+                        screenHeight: bgRoot.screen.height
+                        scaledScreenWidth: bgRoot.screen.width
+                        scaledScreenHeight: bgRoot.screen.height
+                        wallpaperScale: 1
+                    }
+                }
+
+                FadeLoader {
+                    shown: bgRoot._widgetEnabled("dateBadge", false)
+                    z: item?.desktopStackZ ?? 0
+                    containmentMask: GlobalStates.widgetEditMode ? _hitMaskdateBadge : null
+                    Item { id: _hitMaskdateBadge; x: parent?.item?.editInputX ?? -8; y: parent?.item?.editInputY ?? -8; width: parent?.item?.editInputWidth ?? ((parent?.width ?? 0) + 16); height: parent?.item?.editInputHeight ?? ((parent?.height ?? 0) + 16) }
+                    sourceComponent: DateBadgeWidget {
+                        widgetIndex: 21
+                        outputName: bgRoot.screen?.name ?? ""
+                        screenWidth: bgRoot.screen.width
+                        screenHeight: bgRoot.screen.height
+                        scaledScreenWidth: bgRoot.screen.width
+                        scaledScreenHeight: bgRoot.screen.height
+                        wallpaperScale: 1
+                    }
+                }
+
+
+                FadeLoader {
                     shown: bgRoot._widgetEnabled("worldClock", false)
                     z: item?.desktopStackZ ?? 0
                     containmentMask: GlobalStates.widgetEditMode ? _hitMask15 : null
@@ -3079,7 +3118,7 @@ Scope {
                             active = true;
                             setSource(Quickshell.shellPath("modules/background/widgets/mascot/MascotWidget.qml"), {
                                 configEntryName: "mascotInstances." + modelData,
-                                widgetIndex: 20 + index,
+                                widgetIndex: 22 + index,
                                 outputName: bgRoot.screen?.name ?? "",
                                 screenWidth: bgRoot.screen.width,
                                 screenHeight: bgRoot.screen.height,

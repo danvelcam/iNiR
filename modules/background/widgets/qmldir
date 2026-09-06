@@ -5,3 +5,5 @@ ManifestPopover 1.0 ManifestPopover.qml
 WidgetManagerPanel 1.0 WidgetManagerPanel.qml
 WidgetSurface 1.0 WidgetSurface.qml
 WidgetQuickControlsLayout 1.0 WidgetQuickControlsLayout.qml
+singleton DesktopWidgetShapes 1.0 DesktopWidgetShapes.qml
+WidgetShapePicker 1.0 WidgetShapePicker.qml

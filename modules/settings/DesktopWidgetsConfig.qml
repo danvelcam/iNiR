@@ -9,6 +9,7 @@ import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 import qs.modules.common.functions
+import qs.modules.background.widgets
 import qs.modules.background.widgets.japaneseTypography
 import "root:modules/background/widgets/japaneseTypography/JapaneseTypographyPresets.js" as JapanesePresets
 
@@ -31,6 +32,8 @@ ContentPage {
             "clock": "time",
             "upcoming events": "time",
             "system uptime": "time",
+            "date badge": "time",
+            "decorative shape": "personal",
             "world clock": "time",
             "news ticker": "time",
             "weather": "weather",
@@ -359,7 +362,7 @@ ContentPage {
     readonly property var _paletteWidgetKeys: [
         "clock", "weather", "customImage", "imageConverter", "mediaControls",
         "visualizer", "systemMonitor", "battery", "notes", "japaneseTypography",
-        "calendarUpcoming", "monthCalendar", "todo", "timers", "uptime", "worldClock",
+        "calendarUpcoming", "monthCalendar", "todo", "timers", "uptime", "worldClock", "shape", "dateBadge",
         "userCard", "mascot", "newsTicker"
     ]
 
@@ -1565,6 +1568,8 @@ ContentPage {
                         { key: "todo", icon: "checklist", label: Translation.tr("Todo"), def: false },
                         { key: "timers", icon: "timer", label: Translation.tr("Timers"), def: false },
                         { key: "uptime", icon: "avg_pace", label: Translation.tr("Uptime"), def: false },
+                        { key: "shape", icon: "category", label: Translation.tr("Decorative shape"), def: false },
+                        { key: "dateBadge", icon: "today", label: Translation.tr("Date badge"), def: false },
                         { key: "newsTicker", icon: "newspaper", label: Translation.tr("News"), def: false },
                         { key: "mascot", icon: "pets", label: Translation.tr("Mascot"), def: false },
                         { key: "japaneseTypography", icon: "translate", label: Translation.tr("Japanese Typography"), def: false },
@@ -5126,6 +5131,158 @@ ContentPage {
                     useBlur: false, showBorder: true, backgroundOpacity: 0.10,
                     borderWidth: 1, borderOpacity: 0.12, cornerRadius: -1,
                     colorMode: "auto", locked: false, x: 80, y: 80
+                })
+            }
+        }
+            }
+        }
+    }
+
+    // ── Date badge ────────────────────────────────────────
+    LazySection {
+        requested: root.isIiActive && root.activeSection === "time"
+        sourceComponent: Component {
+            SettingsCardSection {
+                settingsTaskSection: "time"
+                expanded: true
+        icon: "today"
+        title: Translation.tr("Date badge")
+
+        SettingsGroup {
+            WidgetStateControls {
+                configPath: "background.widgets.dateBadge"
+                configEntry: Config.getNestedValue("background.widgets.dateBadge", ({}))
+                defaultStrategy: "free"
+            }
+            ContentSubsection {
+                title: Translation.tr("Dimensions")
+
+                WidgetSettingRow {
+                    label: Translation.tr("Width")
+                    icon: "swap_horiz"
+                    StyledSpinBox {
+                        from: 140; to: 600; stepSize: 10
+                        value: Config.getNestedValue("background.widgets.dateBadge.contentWidth", 220)
+                        onValueModified: Config.setNestedValue("background.widgets.dateBadge.contentWidth", value)
+                    }
+                }
+                WidgetSettingRow {
+                    label: Translation.tr("Height")
+                    icon: "swap_vert"
+                    StyledSpinBox {
+                        from: 120; to: 240; stepSize: 4
+                        value: Config.getNestedValue("background.widgets.dateBadge.contentHeight", 140)
+                        onValueModified: Config.setNestedValue("background.widgets.dateBadge.contentHeight", value)
+                    }
+                }
+            }
+
+            ConfigSelectionArray {
+                currentValue: Config.getNestedValue("background.widgets.dateBadge.style", "ticket")
+                onSelected: newValue => Config.setNestedValue("background.widgets.dateBadge.style", newValue)
+                options: [{ displayName: Translation.tr("Ticket"), value: "ticket" }, { displayName: Translation.tr("Stacked"), value: "stacked" }, { displayName: Translation.tr("Seal"), value: "seal" }]
+            }
+            ConfigSelectionArray {
+                currentValue: Config.getNestedValue("background.widgets.dateBadge.showYear", true)
+                onSelected: newValue => Config.setNestedValue("background.widgets.dateBadge.showYear", newValue)
+                options: [{ displayName: Translation.tr("Show year"), value: true }, { displayName: Translation.tr("Hide year"), value: false }]
+            }
+            WidgetAppearanceControls {
+                configPath: "background.widgets.dateBadge"
+                configEntry: Config.getNestedValue("background.widgets.dateBadge", ({}))
+                hasCardControls: true
+            }
+        }
+
+        SettingsGroup {
+            WidgetResetButton {
+                configPath: "background.widgets.dateBadge"
+                defaults: ({
+                    placementStrategy: "free", contentWidth: 220, contentHeight: 140,
+                    style: "ticket", showYear: true, dim: 0, widgetScale: 100, widgetOpacity: 100, showBackground: true,
+                    useBlur: false, showBorder: true, backgroundOpacity: 0.16,
+                    borderWidth: 1, borderOpacity: 0.20, cornerRadius: -1,
+                    colorMode: "auto", locked: false, x: 260, y: 80
+                })
+            }
+        }
+            }
+        }
+    }
+
+    // ── Decorative shape ────────────────────────────────────────
+    LazySection {
+        requested: root.isIiActive && root.activeSection === "personal"
+        sourceComponent: Component {
+            SettingsCardSection {
+                settingsTaskSection: "personal"
+                expanded: true
+        icon: "category"
+        title: Translation.tr("Decorative shape")
+
+        SettingsGroup {
+            WidgetStateControls {
+                configPath: "background.widgets.shape"
+                configEntry: Config.getNestedValue("background.widgets.shape", ({}))
+                defaultStrategy: "free"
+            }
+            ContentSubsection {
+                title: Translation.tr("Dimensions")
+
+                WidgetSettingRow {
+                    label: Translation.tr("Width")
+                    icon: "swap_horiz"
+                    StyledSpinBox {
+                        from: 64; to: 600; stepSize: 10
+                        value: Config.getNestedValue("background.widgets.shape.contentWidth", 160)
+                        onValueModified: Config.setNestedValue("background.widgets.shape.contentWidth", value)
+                    }
+                }
+                WidgetSettingRow {
+                    label: Translation.tr("Height")
+                    icon: "swap_vert"
+                    StyledSpinBox {
+                        from: 64; to: 240; stepSize: 4
+                        value: Config.getNestedValue("background.widgets.shape.contentHeight", 160)
+                        onValueModified: Config.setNestedValue("background.widgets.shape.contentHeight", value)
+                    }
+                }
+            }
+
+            WidgetShapePicker {
+                Layout.fillWidth: true
+                selectedShape: Config.getNestedValue("background.widgets.shape.shape", "Flower")
+                onShapeSelected: name => Config.setNestedValue("background.widgets.shape.shape", name)
+            }
+            WidgetSettingRow {
+                label: Translation.tr("Rotation")
+                StyledSpinBox {
+                    from: 0; to: 360; stepSize: 15
+                    value: Config.getNestedValue("background.widgets.shape.angle", 0)
+                    onValueModified: Config.setNestedValue("background.widgets.shape.angle", value)
+                }
+            }
+            ConfigSelectionArray {
+                currentValue: Config.getNestedValue("background.widgets.shape.outline", false)
+                onSelected: newValue => Config.setNestedValue("background.widgets.shape.outline", newValue)
+                options: [{ displayName: Translation.tr("Filled"), value: false }, { displayName: Translation.tr("Outline"), value: true }]
+            }
+            WidgetAppearanceControls {
+                configPath: "background.widgets.shape"
+                configEntry: Config.getNestedValue("background.widgets.shape", ({}))
+                hasCardControls: false
+            }
+        }
+
+        SettingsGroup {
+            WidgetResetButton {
+                configPath: "background.widgets.shape"
+                defaults: ({
+                    placementStrategy: "free", contentWidth: 160, contentHeight: 160,
+                    dim: 0, widgetScale: 100, widgetOpacity: 100, shape: "Flower", outline: false, angle: 0, strokeWidth: 3, showBackground: false,
+                    useBlur: false, showBorder: false, backgroundOpacity: 0,
+                    borderWidth: 0, borderOpacity: 0.20, cornerRadius: -1,
+                    colorMode: "auto", locked: false, x: 80, y: 240
                 })
             }
         }
