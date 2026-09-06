@@ -41,6 +41,12 @@ Item { // Wrapper
     readonly property string prefixShellCommand: searchPrefixes.shellCommand ?? "$"
     readonly property string prefixWebSearch: searchPrefixes.webSearch ?? "?"
 
+    // Store mode: the prefix-less search also offers packages you don't have yet,
+    // so "vscode" surfaces an install row next to the app hits instead of nothing.
+    property bool storeSearchEnabled: true
+    property int storeSearchMinChars: 3
+    property int storeSearchMaxResults: 5
+
     property string mathResult: ""
     property string debouncedSearchText: ""
     property var cachedResults: []
@@ -136,11 +142,126 @@ Item { // Wrapper
         return StringUtils.stringListContainsSubstring(entry.toLowerCase(), unsafeKeywords);
     }
 
+    // pacman/paru match names *and* descriptions, and repo output is alphabetical,
+    // so raw order buries the package you actually want ("obsidian" lands under
+    // markdown-oxide). Score every candidate instead, lowest wins:
+    //
+    //   +100  not a desktop app per AppStream — a launcher search wants programs,
+    //         so `code` (matched only on its description) outranks the pile of
+    //         vscode-* language servers whose names match but that you can't run
+    //     +8  looks like a support package (language server, plugin, theme, docs) —
+    //         outweighs a tier, so vscode-json-languageserver sinks below a plain
+    //         editor that only matched on its description
+    //     +4  per name-match tier: exact < prefix < substring < description only
+    //     +1  AUR rather than an official repo
+    //
+    // With no AppStream index installed every package scores +100, which degrades
+    // to plain name-relevance ordering.
+    function rankStorePackages(packages, query): var {
+        const needle = query.toLowerCase();
+        const helperPattern = /(lang|server|debug|plugin|theme|icon|driver|doc|sdk|help|i18n|l10n|locale|^lib|^python-|^perl-|-git$|-devel$)/;
+        const seen = new Set();
+        const scored = [];
+
+        for (const pkg of (packages ?? [])) {
+            if (pkg.installed) continue;
+            const name = (pkg.name ?? "").toLowerCase();
+            if (name.length === 0 || seen.has(name)) continue;
+            seen.add(name);
+
+            const tier = name === needle ? 0
+                : name.startsWith(needle) ? 1
+                : name.includes(needle) ? 2
+                : 3;
+
+            scored.push({
+                pkg: pkg,
+                score: (root.storeAppInfo(name) !== null ? 0 : 100)
+                    + tier * 4
+                    + (helperPattern.test(name) ? 8 : 0)
+                    + (pkg.isAur ? 1 : 0)
+            });
+        }
+
+        scored.sort((a, b) => a.score - b.score);
+        return scored.slice(0, root.storeSearchMaxResults).map(entry => entry.pkg);
+    }
+
+    // AppStream index built by ~/.local/bin/inir-store-index: package name ->
+    // { name, summary, icon }. It is what lets a store row show "Visual Studio Code"
+    // with the real logo, and it also marks which packages are actual desktop apps
+    // rather than language servers or plugins. Missing file just means the plain
+    // package name and an icon-theme guess, so nothing here is load-bearing.
+    property var storeAppIndex: ({})
+
+    FileView {
+        id: storeIndexFile
+        path: `${Quickshell.env("HOME")}/.cache/inir-store-index.json`
+        watchChanges: true
+        printErrors: false
+        onLoadedChanged: {
+            if (!storeIndexFile.loaded) return;
+            try {
+                root.storeAppIndex = JSON.parse(storeIndexFile.text()) ?? {};
+            } catch (e) {
+                root.storeAppIndex = {};
+            }
+        }
+        onFileChanged: storeIndexFile.reload()
+    }
+
+    function storeAppInfo(packageName): var {
+        return root.storeAppIndex[(packageName ?? "").toLowerCase()] ?? null;
+    }
+
+    // Package name and icon name disagree often enough to be worth a short table:
+    // WhiteSur, for one, aliases code.svg to the generic text-editor.svg, so the
+    // Arch package `code` would otherwise show a notepad instead of the VS Code logo.
+    // Tried before the package name itself. Extend freely.
+    readonly property var storeIconAliases: ({
+        "code": ["visual-studio-code", "vscode"],
+        "code-git": ["visual-studio-code", "vscode"],
+        "visual-studio-code-bin": ["visual-studio-code", "vscode"],
+        "telegram-desktop": ["telegram"],
+        "spotify-launcher": ["spotify"],
+        "thunderbird-bin": ["thunderbird"]
+    })
+
+    // An uninstalled package ships no .desktop file, but icon themes carry art for
+    // thousands of apps you don't have yet — so look the package name up in the
+    // theme and fall back to the generic download glyph when it misses.
+    function storeIconFor(packageName): string {
+        const base = (packageName ?? "").toLowerCase();
+        if (base.length === 0) return "";
+
+        // AppStream ships the app's own icon file — best answer when we have it.
+        const appInfo = root.storeAppInfo(base);
+        const appIcon = appInfo?.icon ?? "";
+        if (appIcon.startsWith("/")) return appIcon;
+        if (appIcon.startsWith("stock:")) {
+            const stock = appIcon.slice(6);
+            if (Quickshell.iconPath(stock, true)) return stock;
+        }
+
+        const candidates = (root.storeIconAliases[base] ?? []).concat([base]);
+        const stripped = base.replace(/-(bin|git|beta|stable|nightly|appimage|electron|dev|devel)$/, "");
+        if (stripped !== base) candidates.push(stripped);
+        const head = stripped.split("-")[0];
+        if (head !== stripped && head.length >= 3) candidates.push(head);
+
+        for (const candidate of candidates) {
+            const path = Quickshell.iconPath(candidate, true);
+            if (path && path.length > 0) return candidate;
+        }
+        return "";
+    }
+
     function updateSearchResults(): void {
         const text = root.debouncedSearchText;
         
         if (text === "") {
             root.cachedResults = [];
+            if (PackageSearch.query !== "") PackageSearch.clear();
             return;
         }
 
@@ -288,6 +409,44 @@ Item { // Wrapper
             return null;
         }).filter(Boolean);
 
+        // Store rows: packages matching the query that aren't installed yet.
+        // PackageSearch debounces internally, and we only re-arm it when the query
+        // actually changed — otherwise its resultsChanged would feed itself forever.
+        const storeQuery = appQuery.trim();
+        const storeEligible = root.storeSearchEnabled
+            && storeQuery.length >= root.storeSearchMinChars
+            && !/^\d/.test(text)
+            && !text.startsWith(root.prefixMath)
+            && !text.startsWith(root.prefixShellCommand)
+            && !text.startsWith(root.prefixWebSearch);
+        if (storeEligible) {
+            if (PackageSearch.query !== storeQuery) PackageSearch.search(storeQuery);
+        } else if (PackageSearch.query !== "") {
+            PackageSearch.clear();
+        }
+        const storeCandidates = (storeEligible && PackageSearch.query === storeQuery)
+            ? root.rankStorePackages(PackageSearch.results ?? [], storeQuery)
+            : [];
+        const storeResultObjects = storeCandidates.map(pkg => {
+            const themeIcon = root.storeIconFor(pkg.name);
+            const appInfo = root.storeAppInfo(pkg.name);
+            // Show the app's real name when AppStream knows it, but keep the package
+            // name visible — it is what actually gets installed.
+            const title = appInfo?.name ? appInfo.name : pkg.name;
+            const blurb = appInfo?.summary ? appInfo.summary : (pkg.description ?? "");
+            return {
+                key: `pkg_${pkg.repo}_${pkg.name}`,
+                name: title,
+                clickActionName: Translation.tr("Install"),
+                type: `${Translation.tr("Install")} · ${pkg.repo}`,
+                comment: title === pkg.name ? blurb : `${pkg.name} — ${blurb}`,
+                icon: themeIcon,
+                // materialSymbol wins over icon in SearchItem, so only set it on a miss
+                materialSymbol: themeIcon === "" ? 'download' : "",
+                execute: () => { PackageSearch.installPackage(pkg.name, true); }
+            };
+        });
+
         let result = [];
         const startsWithNumber = /^\d/.test(text);
         const startsWithMathPrefix = text.startsWith(root.prefixMath);
@@ -304,6 +463,7 @@ Item { // Wrapper
 
         result = result.concat(appResultObjects);
         result = result.concat(launcherActionObjects);
+        result = result.concat(storeResultObjects);
 
         if (root.searchPrefixes.showDefaultActionsWithoutPrefix ?? true) {
             if (!startsWithShellCommandPrefix) result.push(commandResultObject);
@@ -321,6 +481,14 @@ Item { // Wrapper
             && !text.startsWith(root.prefixAction)
             && !text.startsWith(root.prefixClipboard)
             && !text.startsWith(root.prefixEmojis);
+    }
+
+    // Package results land asynchronously; rebuild the list when they do.
+    Connections {
+        target: PackageSearch
+        function onResultsChanged() {
+            if (root.storeSearchEnabled) root.updateSearchResults();
+        }
     }
 
     Timer {

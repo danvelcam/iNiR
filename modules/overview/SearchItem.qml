@@ -292,7 +292,11 @@ RippleButton {
         Component {
             id: iconImageComponent
             IconImage {
-                source: Quickshell.iconPath(root.itemIcon, "image-missing")
+                // Store rows can hand over an absolute path (AppStream ships icon
+                // files, not theme names), so load those straight off disk.
+                source: root.itemIcon.startsWith("/")
+                    ? `file://${root.itemIcon}`
+                    : Quickshell.iconPath(root.itemIcon, "image-missing")
                 width: 35
                 height: 35
             }
