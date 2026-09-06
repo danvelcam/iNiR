@@ -7,6 +7,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Widgets
 import Quickshell.Services.UPower
 
 Rectangle {
@@ -153,6 +154,43 @@ Rectangle {
             configuration: StyledSlider.Configuration.M
             stopIndicatorValues: []
             scrollable: true
+
+            // Estilo iOS: la pista es una cápsula continua que se rellena, sin el
+            // handle en barra vertical de Material ni el hueco que deja alrededor.
+            // El handle se conserva con ancho 0 porque es el ancla del tooltip.
+            handleDefaultWidth: 0
+            handlePressedWidth: 0
+            handleMargins: 0
+
+            background: Item {
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width
+                implicitHeight: slider.trackWidth
+
+                // ClippingRectangle en vez de dos rectángulos partidos: así el
+                // relleno hereda las esquinas de la cápsula en los dos extremos,
+                // tanto al 0% como al 100%.
+                ClippingRectangle {
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                    }
+                    height: slider.trackWidth
+                    radius: slider.trackRadius
+                    color: slider.trackColor
+
+                    Rectangle {
+                        anchors {
+                            left: parent.left
+                            top: parent.top
+                            bottom: parent.bottom
+                        }
+                        width: Math.max(0, slider.visualPosition * parent.width)
+                        color: slider.highlightColor
+                    }
+                }
+            }
             value: quickSlider.modelValue
             onMoved: quickSlider.moved(value)
         }
