@@ -1849,6 +1849,39 @@ Singleton {
                         property real y: 240
                     }
 
+                    property JsonObject editorial: JsonObject {
+                        property bool enable: false
+                        property string title: "Make room for wonder."
+                        property string caption: "A LITTLE EVERY DAY"
+                        property string footer: "YOUR OWN PERSPECTIVE"
+                        property string style: "poster"
+                        property bool showAccent: true
+                        property bool locked: false
+                        property string placementStrategy: "free"
+                        property int contentWidth: 360
+                        property int contentHeight: 240
+                        property int widgetScale: 100
+                        property int widgetOpacity: 100
+                        property bool showBackground: false
+                        property bool useBlur: false
+                        property bool showBorder: false
+                        property real backgroundOpacity: 0.12
+                        property real borderWidth: 1
+                        property real borderOpacity: 0.20
+                        property real cornerRadius: -1
+                        property string colorMode: "auto"
+                        property JsonObject palette: JsonObject {
+                            property string primary: "primary"
+                            property string secondary: "secondary"
+                            property string tertiary: "tertiary"
+                            property string signal: "signal"
+                            property string surface: "surface"
+                        }
+                        property int dim: 0
+                        property real x: 100
+                        property real y: 300
+                    }
+
                     property JsonObject dateBadge: JsonObject {
                         property bool enable: false
                         property string style: "ticket"

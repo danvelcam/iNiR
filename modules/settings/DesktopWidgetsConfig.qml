@@ -34,6 +34,7 @@ ContentPage {
             "system uptime": "time",
             "date badge": "time",
             "decorative shape": "personal",
+            "editorial": "personal",
             "world clock": "time",
             "news ticker": "time",
             "weather": "weather",
@@ -362,7 +363,7 @@ ContentPage {
     readonly property var _paletteWidgetKeys: [
         "clock", "weather", "customImage", "imageConverter", "mediaControls",
         "visualizer", "systemMonitor", "battery", "notes", "japaneseTypography",
-        "calendarUpcoming", "monthCalendar", "todo", "timers", "uptime", "worldClock", "shape", "dateBadge",
+        "calendarUpcoming", "monthCalendar", "todo", "timers", "uptime", "worldClock", "shape", "dateBadge", "editorial",
         "userCard", "mascot", "newsTicker"
     ]
 
@@ -1570,6 +1571,7 @@ ContentPage {
                         { key: "uptime", icon: "avg_pace", label: Translation.tr("Uptime"), def: false },
                         { key: "shape", icon: "category", label: Translation.tr("Decorative shape"), def: false },
                         { key: "dateBadge", icon: "today", label: Translation.tr("Date badge"), def: false },
+                        { key: "editorial", icon: "text_fields", label: Translation.tr("Editorial"), def: false },
                         { key: "newsTicker", icon: "newspaper", label: Translation.tr("News"), def: false },
                         { key: "mascot", icon: "pets", label: Translation.tr("Mascot"), def: false },
                         { key: "japaneseTypography", icon: "translate", label: Translation.tr("Japanese Typography"), def: false },
@@ -5134,6 +5136,86 @@ ContentPage {
                 })
             }
         }
+            }
+        }
+    }
+
+    LazySection {
+        requested: root.isIiActive && root.activeSection === "personal"
+        sourceComponent: Component {
+            SettingsCardSection {
+                settingsTaskSection: "personal"
+                expanded: true
+                icon: "text_fields"
+                title: Translation.tr("Editorial")
+                SettingsGroup {
+                    WidgetStateControls {
+                        configPath: "background.widgets.editorial"
+                        configEntry: Config.getNestedValue("background.widgets.editorial", ({}))
+                        defaultStrategy: "free"
+                    }
+                    ContentSubsection {
+                        title: Translation.tr("Editorial content")
+                        MaterialTextField {
+                            Layout.fillWidth: true
+                            placeholderText: Translation.tr("Title")
+                            text: Config.getNestedValue("background.widgets.editorial.title", "Make room for wonder.")
+                            onEditingFinished: Config.setNestedValue("background.widgets.editorial.title", text)
+                        }
+                        MaterialTextField {
+                            Layout.fillWidth: true
+                            placeholderText: Translation.tr("Caption")
+                            text: Config.getNestedValue("background.widgets.editorial.caption", "A LITTLE EVERY DAY")
+                            onEditingFinished: Config.setNestedValue("background.widgets.editorial.caption", text)
+                        }
+                        MaterialTextField {
+                            Layout.fillWidth: true
+                            placeholderText: Translation.tr("Footer")
+                            text: Config.getNestedValue("background.widgets.editorial.footer", "YOUR OWN PERSPECTIVE")
+                            onEditingFinished: Config.setNestedValue("background.widgets.editorial.footer", text)
+                        }
+                    }
+                    ConfigSelectionArray {
+                        currentValue: Config.getNestedValue("background.widgets.editorial.style", "poster")
+                        onSelected: newValue => Config.setNestedValue("background.widgets.editorial.style", newValue)
+                        options: [{ displayName: Translation.tr("Poster"), value: "poster" }, { displayName: Translation.tr("Quote"), value: "quote" }, { displayName: Translation.tr("Label"), value: "label" }]
+                    }
+                    ConfigSelectionArray {
+                        currentValue: Config.getNestedValue("background.widgets.editorial.showAccent", true)
+                        onSelected: newValue => Config.setNestedValue("background.widgets.editorial.showAccent", newValue)
+                        options: [{ displayName: Translation.tr("Decorative accents"), value: true }, { displayName: Translation.tr("Text only"), value: false }]
+                    }
+                    WidgetSettingRow {
+                        label: Translation.tr("Width")
+                        StyledSpinBox {
+                            from: 180; to: 900; stepSize: 20
+                            value: Config.getNestedValue("background.widgets.editorial.contentWidth", 360)
+                            onValueModified: Config.setNestedValue("background.widgets.editorial.contentWidth", value)
+                        }
+                    }
+                    WidgetSettingRow {
+                        label: Translation.tr("Height")
+                        StyledSpinBox {
+                            from: 140; to: 900; stepSize: 20
+                            value: Config.getNestedValue("background.widgets.editorial.contentHeight", 240)
+                            onValueModified: Config.setNestedValue("background.widgets.editorial.contentHeight", value)
+                        }
+                    }
+                    WidgetAppearanceControls {
+                        configPath: "background.widgets.editorial"
+                        configEntry: Config.getNestedValue("background.widgets.editorial", ({}))
+                        hasCardControls: true
+                    }
+                    WidgetResetButton {
+                        configPath: "background.widgets.editorial"
+                        defaults: ({ placementStrategy: "free", contentWidth: 360, contentHeight: 240,
+                            title: "Make room for wonder.", caption: "A LITTLE EVERY DAY", footer: "YOUR OWN PERSPECTIVE",
+                            style: "poster", showAccent: true, widgetScale: 100, widgetOpacity: 100,
+                            colorMode: "auto", dim: 0, locked: false, showBackground: false, showBorder: false,
+                            backgroundOpacity: 0.12, borderWidth: 1, borderOpacity: 0.2,
+                            cornerRadius: -1, useBlur: false, x: 100, y: 300 })
+                    }
+                }
             }
         }
     }

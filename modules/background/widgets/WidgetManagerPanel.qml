@@ -37,6 +37,7 @@ Item {
         { key: "timers", icon: "timer", label: "Timers", defaultEnabled: false },
         { key: "shape", icon: "category", label: "Decorative shape", defaultEnabled: false },
         { key: "dateBadge", icon: "today", label: "Date badge", defaultEnabled: false },
+        { key: "editorial", icon: "text_fields", label: "Editorial", defaultEnabled: false },
         { key: "uptime", icon: "avg_pace", label: "System uptime", defaultEnabled: false },
         { key: "newsTicker", icon: "newspaper", label: "News Ticker", defaultEnabled: false },
         { key: "mascot", icon: "pets", label: "Mascot", defaultEnabled: false },
