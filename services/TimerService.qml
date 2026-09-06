@@ -133,12 +133,18 @@ Singleton {
         pomodoroSecondsLeft = pomodoroLapDuration - (getCurrentTimeInSeconds() - Persistent.states.timer.pomodoro.start);
     }
 
-    Timer {
-        id: pomodoroTimer
-        interval: 200
-        running: root.pomodoroRunning && !root.pomodoroPaused
-        repeat: true
-        onTriggered: refreshPomodoro()
+    function refreshSecondTimers(): void {
+        if (!Persistent.ready) return;
+        if (root.pomodoroRunning && !root.pomodoroPaused) root.refreshPomodoro();
+        if (root.countdownRunning && !root.countdownPaused) root.refreshCountdown();
+    }
+
+    SystemClock {
+        precision: SystemClock.Seconds
+        enabled: Persistent.ready && ((root.pomodoroRunning && !root.pomodoroPaused)
+            || (root.countdownRunning && !root.countdownPaused))
+        // Let start/resume finish writing its timestamp before the first refresh.
+        onDateChanged: Qt.callLater(root.refreshSecondTimers)
     }
 
     function togglePomodoro() {
@@ -235,14 +241,6 @@ Singleton {
                 Audio.playEvent("timerDone");
             }
         }
-    }
-
-    Timer {
-        id: countdownTimer
-        interval: 200
-        running: root.countdownRunning && !root.countdownPaused
-        repeat: true
-        onTriggered: refreshCountdown()
     }
 
     function toggleCountdown(): void {
