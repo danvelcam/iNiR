@@ -21,9 +21,13 @@ GroupButton {
     readonly property bool showZzzPreview: Appearance.zzzEverywhere && buttonPreviewKind.length > 0
     leftRadius: Appearance.regaliaEverywhere ? Appearance.regalia.controlRadius
         : Appearance.zzzEverywhere ? Appearance.zzz.controlRadius
+        : Appearance.editorialEverywhere
+            ? ((toggled || leftmost) ? Appearance.rounding.small : Appearance.rounding.unsharpen)
         : (toggled || leftmost) ? (height / 2) : Appearance.rounding.unsharpenmore
     rightRadius: Appearance.regaliaEverywhere ? Appearance.regalia.controlRadius
         : Appearance.zzzEverywhere ? Appearance.zzz.controlRadius
+        : Appearance.editorialEverywhere
+            ? ((toggled || rightmost) ? Appearance.rounding.small : Appearance.rounding.unsharpen)
         : (toggled || rightmost) ? (height / 2) : Appearance.rounding.unsharpenmore
     Behavior on leftRadius {
         enabled: Appearance.animationsEnabled

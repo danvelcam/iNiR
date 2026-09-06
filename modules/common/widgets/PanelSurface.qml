@@ -98,6 +98,7 @@ Item {
     readonly property bool _inir: root._resolvedDialect === "inir"
     readonly property bool _aurora: root._resolvedDialect === "aurora" || root._angel
     readonly property bool _cookie: root._resolvedDialect === "cookie"
+    readonly property bool _editorial: root._resolvedDialect === "editorial"
     readonly property bool _island: root._resolvedDialect === "island"
     readonly property bool _backdropActive: !root.borderless && Appearance.effectsEnabled
         && root.wallpaperBackdrop && root._aurora
@@ -138,6 +139,7 @@ Item {
         : root.island ? 1
         : root._angel ? Appearance.angel.cardBorderWidth
         : root._regalia ? 0
+        : root._editorial ? 1
         : root._inir ? 1
         : (root.cardStyle ? 1 : 0)
     readonly property color _borderColor: root._angel ? Appearance.angel.colCardBorder
@@ -230,6 +232,15 @@ Item {
         showLabels: root.frameLabel.length > 0 || root.frameIndex.length > 0
         label: root.frameLabel
         index: root.frameIndex
+    }
+
+    EditorialRule {
+        visible: root._editorial && !root.borderless && root.outlined
+        width: parent.width
+        height: parent.height
+        vertical: root.height > root.width * 2
+        inset: root._radius + 8
+        emphasized: root.activeFocus || root.elevation >= 2
     }
 
     // Contenido encima de la cara.

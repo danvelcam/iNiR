@@ -226,6 +226,15 @@ Item {
                     animation: ColorAnimation { duration: Appearance.animation.stateChange.duration; easing.type: Appearance.animation.stateChange.type; easing.bezierCurve: Appearance.animation.stateChange.bezierCurve }
                 }
 
+                EditorialRule {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: 2
+                    inset: SettingsMaterialPreset.headerPaddingX
+                    emphasized: root.expanded || headerMouseArea.containsMouse
+                }
+
                 RegaliaControlFace {
                     anchors.fill: parent
                     visible: Appearance.regaliaEverywhere && root.collapsible && headerMouseArea.containsMouse
@@ -240,9 +249,26 @@ Item {
                     anchors.rightMargin: SettingsMaterialPreset.headerPaddingX
                     spacing: 8
 
+                    Loader {
+                        active: Appearance.editorialEverywhere
+                        Layout.preferredWidth: active ? 28 : 0
+                        Layout.preferredHeight: active ? 28 : 0
+                        visible: active
+                        sourceComponent: MaterialShape {
+                            implicitSize: 26
+                            shape: MaterialShape.Shape.Flower
+                            color: Appearance.editorial.accent
+                            rotation: root.expanded ? 45 : 0
+                            Behavior on rotation {
+                                enabled: Appearance.animationsEnabled
+                                NumberAnimation { duration: 260; easing.type: Easing.OutCubic }
+                            }
+                        }
+                    }
+
                     // Icon with expand-state color
                     Loader {
-                        active: root.icon && root.icon.length > 0
+                        active: !Appearance.editorialEverywhere && root.icon && root.icon.length > 0
                         visible: active
                         Layout.alignment: Qt.AlignVCenter
 
@@ -303,8 +329,9 @@ Item {
 
                     StyledText {
                         text: Appearance.zzzEverywhere ? root.title.toUpperCase() : root.title
-                        font.pixelSize: Appearance.font.pixelSize.normal
-                        font.weight: Appearance.zzzEverywhere ? Font.ExtraBold : Font.DemiBold
+                        font.family: Appearance.editorialEverywhere ? Appearance.font.family.title : Appearance.font.family.main
+                        font.pixelSize: Appearance.editorialEverywhere ? Appearance.font.pixelSize.huge : Appearance.font.pixelSize.normal
+                        font.weight: Appearance.editorialEverywhere ? Font.Normal : Appearance.zzzEverywhere ? Font.ExtraBold : Font.DemiBold
                         color: root.expanded
                             ? SettingsMaterialPreset.titleExpandedColor
                             : SettingsMaterialPreset.titleCollapsedColor

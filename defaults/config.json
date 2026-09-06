@@ -116,7 +116,8 @@
             "angel": 1,
             "regalia": 1,
             "zzz": 0,
-            "cookie": 1
+            "cookie": 1,
+            "editorial": 1
         },
         "themeSchedule": {
             "enabled": false,

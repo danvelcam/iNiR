@@ -19,6 +19,7 @@ RippleButton {
     implicitWidth: root.showLabel ? (implicitContentWidth + horizontalPadding * 2) : root._iconOnlyImplicitWidth
     buttonRadius: Appearance.regaliaEverywhere ? Appearance.regalia.roundSmall
         : Appearance.zzzEverywhere ? Appearance.zzz.controlRadius
+        : Appearance.editorialEverywhere ? Appearance.rounding.small
         : Appearance.angelEverywhere ? Appearance.angel.roundingSmall
         : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : height / 2
 
@@ -28,10 +29,12 @@ RippleButton {
     // background, which means an icon-only tab morphs to cookie6 and a labelled
     // one becomes a scalloped pill — one silhouette, whatever the tab's width.
     cookieMorphing: Appearance.cookieEverywhere
-    toggled: (Appearance.regaliaEverywhere || Appearance.cookieEverywhere) && root.current
+    toggled: (Appearance.regaliaEverywhere || Appearance.cookieEverywhere || Appearance.editorialEverywhere) && root.current
     colBackgroundToggled: Appearance.regaliaEverywhere ? Appearance.regalia.primaryPlate
+        : Appearance.editorialEverywhere ? Appearance.editorial.field
         : Appearance.colors.colPrimaryContainer
     colBackgroundToggledHover: Appearance.regaliaEverywhere ? Appearance.regalia.primaryPlateHover
+        : Appearance.editorialEverywhere ? Appearance.colors.colPrimaryContainerHover
         : Appearance.colors.colPrimaryContainer
 
     colBackground: "transparent"
@@ -69,6 +72,8 @@ RippleButton {
                 ? (root.current ? Appearance.zzz.accent : Appearance.zzz.inkMuted)
                 : Appearance.cookieEverywhere && root.current
                 ? Appearance.colors.colOnPrimaryContainer
+                : Appearance.editorialEverywhere
+                ? (root.current ? Appearance.editorial.ink : Appearance.editorial.muted)
                 : Appearance.angelEverywhere
                 ? (root.current ? Appearance.angel.colOnPrimary : Appearance.angel.colText)
                 : Appearance.inirEverywhere
@@ -110,6 +115,8 @@ RippleButton {
                     // selected tab.
                     : Appearance.cookieEverywhere && root.current
                     ? Appearance.colors.colOnPrimaryContainer
+                    : Appearance.editorialEverywhere
+                    ? (root.current ? Appearance.editorial.ink : Appearance.editorial.muted)
                     : Appearance.angelEverywhere
                     ? (root.current ? Appearance.angel.colOnPrimary : Appearance.angel.colText)
                     : Appearance.inirEverywhere

@@ -1804,6 +1804,8 @@ Singleton {
         },
 
         // =====================================================================
+        { pageIndex: 4, pageName: root.pages[4].name, section: Translation.tr("Global Style"), label: Translation.tr("Editorial style"), description: Translation.tr("Paper surfaces, serif headings and subtle geometric accents"), keywords: ["editorial", "style", "paper", "serif", "typography", "poster"] },
+
         // Desktop Widgets (page 14)
         // =====================================================================
         { pageIndex: 14, pageName: root.pages[14].name, section: Translation.tr("Editorial"), label: Translation.tr("Editorial"), description: Translation.tr("Personal typography in poster, quote and label compositions"), keywords: ["editorial", "text", "typography", "poster", "quote", "label", "caption", "footer", "desktop", "widget"] },

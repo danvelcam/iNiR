@@ -1594,7 +1594,8 @@ ContentPage {
                         { displayName: Translation.tr("Angel"), icon: "raven", value: "angel" },
                         { displayName: Translation.tr("Regalia"), icon: "event_seat", value: "regalia" },
                         { displayName: Translation.tr("ZZZ"), icon: "bolt", value: "zzz" },
-                        { displayName: Translation.tr("Cookie Shapes"), icon: "cookie", value: "cookie" }
+                        { displayName: Translation.tr("Cookie Shapes"), icon: "cookie", value: "cookie" },
+                        { displayName: Translation.tr("Editorial"), icon: "auto_stories", value: "editorial" }
                     ]
                 }
             }
@@ -1604,6 +1605,53 @@ ContentPage {
                 text: Translation.tr("Restyles every surface in the shell. Applies instantly.")
             }
 
+        }
+    }
+
+    SettingsCardSection {
+        visible: root.activeSection === "style" && Appearance.editorialEverywhere
+        settingsTaskSection: "style"
+        expanded: true
+        icon: "auto_stories"
+        title: Translation.tr("Editorial")
+        PanelSurface {
+            Layout.fillWidth: true
+            implicitHeight: editorialPreview.implicitHeight + 40
+            elevation: 2
+            ColumnLayout {
+                id: editorialPreview
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 12
+                StyledText {
+                    text: Translation.tr("A LITTLE EVERY DAY")
+                    color: Appearance.editorial.accent
+                    font.pixelSize: Appearance.font.pixelSize.smallest
+                    font.weight: Font.DemiBold
+                }
+                StyledText {
+                    Layout.fillWidth: true
+                    text: Translation.tr("Make room for wonder.")
+                    font.family: Appearance.font.family.title
+                    font.pixelSize: 32 * Appearance.fontSizeScale
+                    wrapMode: Text.WordWrap
+                    color: Appearance.editorial.ink
+                }
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 1
+                    color: Appearance.editorial.rule
+                }
+                StyledText {
+                    Layout.fillWidth: true
+                    text: Translation.tr("Quiet surfaces. Expressive headings. Your colors.")
+                    wrapMode: Text.WordWrap
+                    color: Appearance.editorial.muted
+                }
+            }
+        }
+        SettingsNote {
+            text: Translation.tr("Editorial follows your color theme and light or dark mode. Serif headings are paired with your chosen interface font.")
         }
     }
 

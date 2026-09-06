@@ -107,9 +107,13 @@ TextField {
         Rectangle {
             anchors.fill: parent
             visible: !Appearance.regaliaEverywhere
-            color: Appearance.colors.colLayer1
-            topLeftRadius: 4
-            topRightRadius: 4
+            color: Appearance.editorialEverywhere ? Appearance.editorial.layer(2) : Appearance.colors.colLayer1
+            topLeftRadius: Appearance.editorialEverywhere ? Appearance.rounding.small : 4
+            topRightRadius: Appearance.editorialEverywhere ? Appearance.rounding.small : 4
+            bottomLeftRadius: Appearance.editorialEverywhere ? Appearance.rounding.small : 0
+            bottomRightRadius: Appearance.editorialEverywhere ? Appearance.rounding.small : 0
+            border.width: Appearance.editorialEverywhere ? 1 : 0
+            border.color: Appearance.editorialEverywhere ? Appearance.editorial.rule : "transparent"
 
             Rectangle {
                 anchors {
@@ -117,8 +121,11 @@ TextField {
                     right: parent.right
                     bottom: parent.bottom
                 }
-                height: 1
-                color: root.activeFocus ? Appearance.colors.colPrimary
+                height: Appearance.editorialEverywhere && root.activeFocus ? 2 : 1
+                color: Appearance.editorialEverywhere
+                    ? (root.activeFocus ? Appearance.editorial.accent
+                        : root.hovered ? Appearance.editorial.edge : Appearance.editorial.rule)
+                    : root.activeFocus ? Appearance.colors.colPrimary
                     : root.hovered ? Appearance.colors.colOutline : Appearance.colors.colOutlineVariant
 
                 Behavior on color {

@@ -9,7 +9,8 @@ QtObject {
     id: root
 
     // ── Page layout ──
-    readonly property int pageSpacing: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.tileGap : 12) * Appearance.fontSizeScale)
+    readonly property int pageSpacing: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.tileGap
+        : Appearance.editorialEverywhere ? 14 : 12) * Appearance.fontSizeScale)
 
     // ── Card (SettingsCardSection) ──
     readonly property int cardRadius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
@@ -17,7 +18,8 @@ QtObject {
         : Appearance.zzzEverywhere ? Appearance.zzz.cornerRadius + 1
         : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
         : Appearance.rounding.normal
-    readonly property int cardPadding: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.tilePadding : 14) * Appearance.fontSizeScale)
+    readonly property int cardPadding: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.tilePadding
+        : Appearance.editorialEverywhere ? 16 : 14) * Appearance.fontSizeScale)
 
     // ── Card header ──
     readonly property int headerRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
@@ -25,8 +27,10 @@ QtObject {
         : Appearance.zzzEverywhere ? Appearance.zzz.cornerRadius
         : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
         : Appearance.rounding.small
-    readonly property int headerPaddingX: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.controlPaddingHorizontal : 12) * Appearance.fontSizeScale)
-    readonly property int headerPaddingY: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.controlPaddingVertical : 7) * Appearance.fontSizeScale)
+    readonly property int headerPaddingX: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.controlPaddingHorizontal
+        : Appearance.editorialEverywhere ? 14 : 12) * Appearance.fontSizeScale)
+    readonly property int headerPaddingY: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.controlPaddingVertical
+        : Appearance.editorialEverywhere ? 8 : 7) * Appearance.fontSizeScale)
 
     // ── Group (SettingsGroup) ──
     readonly property int groupRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
@@ -34,8 +38,10 @@ QtObject {
         : Appearance.zzzEverywhere ? Appearance.zzz.cornerRadius
         : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
         : Appearance.rounding.small
-    readonly property int groupPadding: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.tilePadding : 12) * Appearance.fontSizeScale)
-    readonly property int groupSpacing: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.tileGap : 7) * Appearance.fontSizeScale)
+    readonly property int groupPadding: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.tilePadding
+        : Appearance.editorialEverywhere ? 14 : 12) * Appearance.fontSizeScale)
+    readonly property int groupSpacing: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.tileGap
+        : Appearance.editorialEverywhere ? 8 : 7) * Appearance.fontSizeScale)
 
     // ── Colors ──
     // In angel/aurora, cards are more transparent to let the content area's
@@ -48,6 +54,7 @@ QtObject {
         // (dark or light) instead of stacking another dark plate. Definition comes
         // from the diagonal pattern + accent bar, not a filled surface + line.
         : Appearance.regaliaEverywhere ? Appearance.regalia.surfacePlate
+        : Appearance.editorialEverywhere ? Appearance.editorial.layer(1)
         : Appearance.zzzEverywhere ? "transparent"
         : Appearance.inirEverywhere ? Appearance.inir.colLayer1
         : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colLayer1Base, 0.85)
@@ -55,6 +62,7 @@ QtObject {
     readonly property color cardBorderColor: Appearance.angelEverywhere
         ? Appearance.angel.colCardBorder
         : Appearance.regaliaEverywhere ? "transparent"
+        : Appearance.editorialEverywhere ? Appearance.editorial.rule
         : Appearance.zzzEverywhere ? Appearance.zzz.hairline
         : Appearance.inirEverywhere ? Appearance.inir.colBorder
         : Appearance.auroraEverywhere ? Appearance.aurora.colPopupBorder
@@ -63,6 +71,7 @@ QtObject {
     readonly property color groupColor: Appearance.angelEverywhere
         ? ColorUtils.transparentize(Appearance.colors.colLayer2Base, Appearance.angel.popupTransparentize * 0.6)
         : Appearance.regaliaEverywhere ? "transparent"
+        : Appearance.editorialEverywhere ? Appearance.editorial.layer(2)
         : Appearance.zzzEverywhere ? "transparent"
         : Appearance.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colLayer2, 0.45)
         : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colLayer2Base, 0.88)
@@ -70,6 +79,7 @@ QtObject {
     readonly property color groupBorderColor: Appearance.angelEverywhere
         ? Appearance.angel.colBorderSubtle
         : Appearance.regaliaEverywhere ? "transparent"
+        : Appearance.editorialEverywhere ? Appearance.editorial.rule
         : Appearance.zzzEverywhere ? Appearance.zzz.hairlineStrong
         : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
         : Appearance.auroraEverywhere ? Appearance.aurora.colPopupBorder
@@ -79,6 +89,7 @@ QtObject {
     readonly property color headerHoverColor: Appearance.angelEverywhere
         ? Appearance.angel.colGlassCardHover
         : Appearance.regaliaEverywhere ? Appearance.regalia.surfacePlateHover
+        : Appearance.editorialEverywhere ? Appearance.editorial.field
         : Appearance.zzzEverywhere ? Appearance.zzz.paperAlt
         : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
@@ -88,6 +99,7 @@ QtObject {
     readonly property color accentColor: Appearance.angelEverywhere
         ? Appearance.angel.colPrimary
         : Appearance.regaliaEverywhere ? Appearance.regalia.onColor
+        : Appearance.editorialEverywhere ? Appearance.editorial.accent
         : Appearance.zzzEverywhere ? Appearance.zzz.accent
         : Appearance.inirEverywhere ? Appearance.inir.colAccent
         : Appearance.colors.colPrimary
@@ -96,12 +108,14 @@ QtObject {
     readonly property color titleExpandedColor: Appearance.angelEverywhere
         ? Appearance.angel.colText
         : Appearance.regaliaEverywhere ? Appearance.regalia.onColor
+        : Appearance.editorialEverywhere ? Appearance.editorial.ink
         : Appearance.zzzEverywhere ? Appearance.zzz.onColor
         : Appearance.inirEverywhere ? Appearance.inir.colText
         : Appearance.colors.colOnSecondaryContainer
     readonly property color titleCollapsedColor: Appearance.angelEverywhere
         ? Appearance.angel.colTextSecondary
         : Appearance.regaliaEverywhere ? Appearance.regalia.onMuted
+        : Appearance.editorialEverywhere ? Appearance.editorial.muted
         : Appearance.zzzEverywhere ? Appearance.colors.colOnLayer1
         : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
         : Appearance.colors.colOnSurfaceVariant
@@ -114,19 +128,23 @@ QtObject {
     readonly property color iconExpandedColor: Appearance.angelEverywhere
         ? Appearance.angel.colPrimary
         : Appearance.regaliaEverywhere ? Appearance.regalia.hardwarePrimary
+        : Appearance.editorialEverywhere ? Appearance.editorial.accent
         : Appearance.zzzEverywhere ? Appearance.zzz.onSticker
         : Appearance.inirEverywhere ? Appearance.inir.colAccent
         : Appearance.colors.colPrimary
     readonly property color iconCollapsedColor: Appearance.angelEverywhere
         ? Appearance.angel.colTextMuted
         : Appearance.regaliaEverywhere ? Appearance.regalia.hardwareSecondary
+        : Appearance.editorialEverywhere ? Appearance.editorial.muted
         : Appearance.zzzEverywhere ? Appearance.zzz.onSecondary
         : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
         : Appearance.colors.colOnSurfaceVariant
 
     // ── Navigation rail ──
     readonly property int navWidth: 180
-    readonly property int navItemHeight: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.controlHeight : 34) * Appearance.fontSizeScale)
-    readonly property int navCategorySpacing: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.tileGap + Appearance.regalia.controlGap : 10) * Appearance.fontSizeScale)
+    readonly property int navItemHeight: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.controlHeight
+        : Appearance.editorialEverywhere ? 36 : 34) * Appearance.fontSizeScale)
+    readonly property int navCategorySpacing: Math.round((Appearance.regaliaEverywhere ? Appearance.regalia.tileGap + Appearance.regalia.controlGap
+        : Appearance.editorialEverywhere ? 12 : 10) * Appearance.fontSizeScale)
     readonly property int navItemSpacing: Appearance.regaliaEverywhere ? Appearance.regalia.controlGap : 2
 }

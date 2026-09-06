@@ -495,6 +495,13 @@ Item { // Wrapper
             glassEnabled: true
         }
 
+        EditorialRule {
+            anchors.fill: parent
+            visible: Appearance.editorialEverywhere && !root.islandStyle
+            inset: Math.max(12, searchWidgetContent.radius)
+            emphasized: root.showResults
+        }
+
         // Collapsed search: a CLEAN plate (just the left category accent bar). The
         // search field is a small control — no ghost text, tape or frame labels.
         ZzzGraphicPlate {

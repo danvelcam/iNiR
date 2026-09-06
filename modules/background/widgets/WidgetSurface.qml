@@ -57,6 +57,7 @@ Rectangle {
     readonly property bool _zzz: root._surfaceDialect === "zzz"
     readonly property bool _cookie: root._surfaceDialect === "cookie"
     readonly property bool _regalia: root._surfaceDialect === "regalia"
+    readonly property bool _editorial: root._surfaceDialect === "editorial"
     readonly property bool _island: root._surfaceDialect === "island"
     readonly property real _surfaceStrength: Math.max(0, Math.min(1, Number(root.surfaceOpacity) || 0))
     readonly property bool _backgroundVisible: root._surfaceStrength > 0.001
@@ -109,6 +110,7 @@ Rectangle {
         style: root._cookie ? "cookie"
             : root._zzz ? "zzz"
             : root._regalia ? "regalia"
+            : root._editorial ? "editorial"
             : root._island ? "island"
             : root._angel ? "angel"
             : root._aurora ? "aurora"
@@ -204,9 +206,19 @@ Rectangle {
             : root._aurora
                 ? ColorUtils.applyAlpha(Appearance.aurora.colTooltipBorder,
                     root.surfaceBorderOpacity)
+                : root._editorial
+                    ? ColorUtils.applyAlpha(Appearance.editorial.edge,
+                        Math.min(1, root.surfaceBorderOpacity * 2))
                 : ColorUtils.applyAlpha(
                     ColorUtils.ensureReadable(root.surfaceAccent, root._flatFill, 3),
                     Math.min(1, root.surfaceBorderOpacity * 2))
+    }
+
+    EditorialRule {
+        anchors.fill: parent
+        visible: root._editorial && root._backgroundVisible
+        inset: Math.max(12, root.radius + 6)
+        emphasized: root.surfaceBorderOpacity >= 0.2
     }
 
     Rectangle {

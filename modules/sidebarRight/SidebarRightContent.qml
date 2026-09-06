@@ -528,6 +528,12 @@ Item {
             ColorAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
         }
 
+        EditorialRule {
+            anchors.fill: parent
+            emphasized: root.panelVisible
+            inset: 24
+        }
+
         RegaliaPlate {
             anchors.fill: parent
             visible: sidebarRightBackground.regaliaEverywhere

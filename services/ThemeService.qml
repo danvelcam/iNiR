@@ -114,6 +114,7 @@ Singleton {
         case "regalia": return styles?.regalia ?? 1
         case "zzz": return styles?.zzz ?? 0
         case "cookie": return styles?.cookie ?? 1
+        case "editorial": return styles?.editorial ?? 1
         default: return styles?.material ?? 1
         }
     }

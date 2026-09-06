@@ -27,7 +27,19 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: visible ? introColumn.implicitHeight + (root.title.length > 0 ? 24 : 20) : 0
         radius: Appearance.rounding.normal
-        color: Appearance.colors.colPrimaryContainer
+        color: Appearance.editorialEverywhere ? Appearance.editorial.field : Appearance.colors.colPrimaryContainer
+        border.width: Appearance.editorialEverywhere ? 1 : 0
+        border.color: Appearance.editorialEverywhere ? Appearance.editorial.rule : Appearance.colors.colOutlineVariant
+
+        EditorialRule {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: 2
+            visible: Appearance.editorialEverywhere
+            inset: Appearance.editorial.inset
+            emphasized: true
+        }
 
         // Full variant (icon + title + description) for pages that onboard;
         // compact variant (centered description + summary) when the page header
@@ -43,15 +55,30 @@ ColumnLayout {
                 visible: root.title.length > 0
                 spacing: 10
 
-                MaterialCookie {
-                    implicitSize: 40
-                    sides: 9
-                    color: Appearance.colors.colPrimary
-                    MaterialSymbol {
+                Item {
+                    Layout.preferredWidth: 40
+                    Layout.preferredHeight: 40
+
+                    MaterialShape {
                         anchors.centerIn: parent
-                        text: root.icon
-                        iconSize: 19
-                        color: Appearance.colors.colOnPrimary
+                        visible: Appearance.editorialEverywhere
+                        implicitSize: 38
+                        shape: MaterialShape.Shape.Flower
+                        color: Appearance.editorial.accent
+                    }
+
+                    MaterialCookie {
+                        anchors.centerIn: parent
+                        visible: !Appearance.editorialEverywhere
+                        implicitSize: 40
+                        sides: 9
+                        color: Appearance.colors.colPrimary
+                        MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: root.icon
+                            iconSize: 19
+                            color: Appearance.colors.colOnPrimary
+                        }
                     }
                 }
 
@@ -61,8 +88,9 @@ ColumnLayout {
                     StyledText {
                         Layout.fillWidth: true
                         text: root.title
-                        font.pixelSize: Appearance.font.pixelSize.normal
-                        font.weight: Font.DemiBold
+                        font.family: Appearance.editorialEverywhere ? Appearance.font.family.title : Appearance.font.family.main
+                        font.pixelSize: Appearance.editorialEverywhere ? Appearance.font.pixelSize.hugeass : Appearance.font.pixelSize.normal
+                        font.weight: Appearance.editorialEverywhere ? Font.Normal : Font.DemiBold
                         color: Appearance.colors.colOnPrimaryContainer
                         wrapMode: Text.WordWrap
                     }

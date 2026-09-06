@@ -153,8 +153,11 @@ Button {
 
         color: buttonBackground.cookieFace || Appearance.regaliaEverywhere
             ? "transparent" : root.color
-        border.width: 0
-        border.color: "transparent"
+        border.width: Appearance.editorialEverywhere ? (root.visualFocus ? 2 : 1) : 0
+        border.color: Appearance.editorialEverywhere
+            ? (root.visualFocus ? Appearance.editorial.accent
+                : root.toggled ? Appearance.editorial.edge : Appearance.editorial.rule)
+            : "transparent"
         scale: Appearance.regaliaEverywhere && root.down ? Appearance.regalia.pressScale : 1
         Behavior on scale {
             enabled: Appearance.animationsEnabled && Appearance.regaliaEverywhere
@@ -198,6 +201,8 @@ Button {
             ? (root.toggled ? Appearance.regalia.primaryPlateInk : Appearance.regalia.onColor)
             : Appearance.zzzEverywhere
                 ? (root.toggled ? Appearance.zzz.onSticker : Appearance.zzz.ink)
+                : Appearance.editorialEverywhere
+                    ? (root.toggled ? Appearance.editorial.accentInk : Appearance.editorial.ink)
                 : Appearance.colors.colOnLayer0
         Behavior on color {
             enabled: Appearance.animationsEnabled

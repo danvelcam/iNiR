@@ -21,7 +21,8 @@ RippleButton {
             + (Appearance.regaliaEverywhere ? Appearance.regalia.controlPaddingHorizontal * 2 : 24))
     implicitHeight: Appearance.regaliaEverywhere ? Appearance.regalia.compactControlHeight : 30
     buttonRadius: Appearance.regaliaEverywhere ? Appearance.regalia.controlRadius
-        : root._zzz ? Appearance.zzz.controlRadius : height / 2
+        : root._zzz ? Appearance.zzz.controlRadius
+        : Appearance.editorialEverywhere ? Appearance.rounding.small : height / 2
     buttonRadiusPressed: buttonRadius
     toggled: root.selected
 

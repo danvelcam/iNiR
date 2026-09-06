@@ -46,14 +46,16 @@ ComboBox {
         : Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
         : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
         : Appearance.colors.colSubtext
-    readonly property color _borderColor: Appearance.angelEverywhere ? Appearance.angel.colBorder
+    readonly property color _borderColor: Appearance.editorialEverywhere ? Appearance.editorial.rule
+        : Appearance.angelEverywhere ? Appearance.angel.colBorder
         : Appearance.inirEverywhere ? Appearance.inir.colBorder
         : "transparent"
-    readonly property real _borderWidth: (Appearance.angelEverywhere || Appearance.inirEverywhere) ? 1 : 0
+    readonly property real _borderWidth: (Appearance.editorialEverywhere || Appearance.angelEverywhere || Appearance.inirEverywhere) ? 1 : 0
     readonly property color _popupColor: Appearance.regaliaEverywhere ? Appearance.regalia.bg2
         : Appearance.inirEverywhere ? Appearance.inir.colLayer2
         : Appearance.colors.colLayer3Base
     readonly property color _popupBorderColor: Appearance.regaliaEverywhere ? "transparent"
+        : Appearance.editorialEverywhere ? Appearance.editorial.edge
         : Appearance.angelEverywhere ? Appearance.angel.colCardBorder
         : Appearance.inirEverywhere ? Appearance.inir.colBorder
         : Appearance.auroraEverywhere ? Appearance.aurora.colPopupBorder
@@ -77,7 +79,8 @@ ComboBox {
             : root._bgColor
         border.width: root._borderWidth
         border.color: root.activeFocus
-            ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary
+            ? (Appearance.editorialEverywhere ? Appearance.editorial.accent
+                : Appearance.angelEverywhere ? Appearance.angel.colPrimary
                 : Appearance.inirEverywhere ? Appearance.inir.colBorderFocus
                 : root._borderColor)
             : root._borderColor
@@ -226,6 +229,7 @@ ComboBox {
 
         background: Rectangle {
             radius: Appearance.regaliaEverywhere ? Appearance.regalia.roundSmall
+                : Appearance.editorialEverywhere ? Appearance.rounding.small
                 : Appearance.angelEverywhere ? Appearance.angel.roundingSmall
                 : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
                 : Appearance.rounding.unsharpenmore

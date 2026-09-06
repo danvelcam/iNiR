@@ -1115,6 +1115,8 @@ ApplicationWindow {
                                         ? Appearance.regalia.roundSmall
                                         : Appearance.zzzEverywhere
                                         ? Appearance.zzz.controlRadius
+                                        : Appearance.editorialEverywhere
+                                        ? Appearance.rounding.small
                                         : Math.min(width, height) / 2
                                     toggled: root.currentPage === pageRealIndex
                                     // Bgless doctrine: zzz selection reads through the sticker pill
@@ -1230,6 +1232,14 @@ ApplicationWindow {
                                 height: Math.max(0, parent.height * 0.62)
                                 width: Appearance.zzz.borderThick * 3
                                 color: Appearance.zzz.accent
+                            }
+
+                            EditorialRule {
+                                anchors.fill: parent
+                                visible: Appearance.editorialEverywhere
+                                vertical: true
+                                inset: 5
+                                emphasized: true
                             }
 
                             Behavior on radius {

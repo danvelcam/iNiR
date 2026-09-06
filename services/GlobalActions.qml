@@ -377,6 +377,15 @@ Singleton {
             execute: () => { root.applyGlobalStyle("zzz") }
         },
         {
+            id: "style-editorial",
+            name: Translation.tr("Style: Editorial"),
+            description: Translation.tr("Paper surfaces, expressive typography and floral accents"),
+            icon: "auto_stories",
+            category: "appearance",
+            keywords: ["style", "editorial", "paper", "serif", "flower", "poster"],
+            execute: () => { root.applyGlobalStyle("editorial") }
+        },
+        {
             id: "style-cookie",
             name: Translation.tr("Style: Cookie Shapes"),
             description: Translation.tr("Switch to Cookie Shapes style"),

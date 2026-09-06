@@ -169,6 +169,13 @@ Item { // Notification item area
             elevated: true
         }
 
+        EditorialRule {
+            anchors.fill: parent
+            visible: Appearance.editorialEverywhere && root.expanded && !root.onlyNotification
+            inset: Math.max(12, background.radius + 4)
+            emphasized: root.notificationCritical
+        }
+
         Behavior on color {
             enabled: Appearance.animationsEnabled
             ColorAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
@@ -216,7 +223,11 @@ Item { // Notification item area
                     id: summaryText
                     Layout.fillWidth: summaryTextMetrics.width >= contentColumn.width * root.summaryElideRatio
                     visible: !root.onlyNotification
-                    font.pixelSize: root.fontSize
+                    font.family: Appearance.editorialEverywhere && root.expanded
+                        ? Appearance.font.family.title : Appearance.font.family.main
+                    font.pixelSize: Appearance.editorialEverywhere && root.expanded
+                        ? Appearance.font.pixelSize.normal : root.fontSize
+                    font.weight: Appearance.editorialEverywhere && root.expanded ? Font.Medium : Font.Normal
                     color: Appearance.zzzEverywhere ? Appearance.zzz.ink : Appearance.colors.colOnLayer3
                     Behavior on color {
                         enabled: Appearance.animationsEnabled
