@@ -160,7 +160,10 @@ StyledPopup {
                         }
                     }
 
-                    onClicked: Audio.switchToTarget(modelData)
+                    onClicked: {
+                        Audio.switchToTarget(modelData)
+                        root.requestClose()
+                    }
                 }
             }
 
