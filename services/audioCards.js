@@ -115,3 +115,69 @@ function pickProfileForPort(card, port) {
     }
     return best === null ? null : best.name
 }
+
+// A sink node belongs to a port when its PipeWire node name carries the port's
+// UCM verb ("HiFi__Headphones__sink" for "[Out] Headphones"). Matching on the
+// description instead would break the moment the card is renamed or translated.
+function nodeMatchesPort(node, port) {
+    if (!node || !port)
+        return false
+    var properties = node.properties || {}
+    var nodeName = String(properties["node.name"] !== undefined
+        ? properties["node.name"] : (node.name || ""))
+    if (nodeName.length === 0)
+        return false
+
+    // "[Out] Headphones" -> "Headphones"
+    var shortName = port.portName.replace("[Out]", "").trim()
+    if (shortName.length === 0)
+        return false
+
+    return nodeName.indexOf("__" + shortName + "__") !== -1
+        || nodeName.indexOf("." + shortName + ".") !== -1
+}
+
+function buildOutputTargets(cards, nodes) {
+    var targets = []
+    if (!Array.isArray(cards))
+        return targets
+    var nodeList = Array.isArray(nodes) ? nodes : []
+
+    var ports = outputPortsOf(cards)
+    for (var i = 0; i < ports.length; i++) {
+        var port = ports[i]
+
+        var matched = null
+        if (port.inActiveProfile) {
+            for (var j = 0; j < nodeList.length; j++) {
+                if (nodeMatchesPort(nodeList[j], port)) {
+                    matched = nodeList[j]
+                    break
+                }
+            }
+        }
+
+        var card = null
+        for (var c = 0; c < cards.length; c++) {
+            if (cards[c].name === port.cardName) {
+                card = cards[c]
+                break
+            }
+        }
+
+        targets.push({
+            key: port.key,
+            label: port.label,
+            iconName: port.iconName,
+            cardName: port.cardName,
+            portName: port.portName,
+            type: port.type,
+            available: port.available,
+            node: matched,
+            // Mutually exclusive with `node` by construction: pickProfileForPort
+            // returns null whenever the port sits in the active profile.
+            needsProfile: matched !== null ? null : pickProfileForPort(card, port),
+        })
+    }
+    return targets
+}

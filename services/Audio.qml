@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
 import qs.services.deferred
+import "audioCards.js" as AudioCardsLib
 
 /**
  * A nice wrapper for default Pipewire audio sink and source.
@@ -109,6 +110,15 @@ Singleton {
     readonly property list<var> inputAppNodes: root.appNodes(false)
     readonly property list<var> outputDevices: root.devices(true)
     readonly property list<var> inputDevices: root.devices(false)
+
+    // Every physical output of every card, including the ones the active card
+    // profile does not expose as a node. outputDevices above can only ever see
+    // the active profile's nodes, so internal speakers are invisible to it while
+    // the headphone profile is active. See services/AudioCards.qml.
+    readonly property list<var> outputTargets: AudioCards.ready
+        ? AudioCardsLib.buildOutputTargets(AudioCards.cards, Pipewire.nodes.values.filter(node =>
+            root.correctType(node, true) && !node.isStream))
+        : []
 
     // Signals
     signal sinkProtectionTriggered(string reason);

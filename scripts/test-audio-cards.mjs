@@ -84,3 +84,52 @@ test("pickProfileForPort returns null when the port is already reachable", () =>
     const headphones = lib.outputPortsOf(cards).find(p => p.label === "Headphones")
     assert.equal(lib.pickProfileForPort(cards[0], headphones), null)
 })
+
+// buildOutputTargets joins card ports with live PipeWire nodes. Nodes are passed
+// in as plain objects: the function must not touch anything Qt-specific.
+const nodeStub = (name, description) => ({
+    id: 1, name, description,
+    properties: { "node.name": name, "api.alsa.path": "" },
+})
+
+test("buildOutputTargets attaches a node to the port it belongs to", () => {
+    const cards = lib.parseCards(fixture)
+    const nodes = [nodeStub(
+        "alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__Headphones__sink",
+        "Raptor Lake-P/U/H cAVS Headphones")]
+    const targets = lib.buildOutputTargets(cards, nodes)
+    const headphones = targets.find(t => t.label === "Headphones")
+    assert.notEqual(headphones.node, null)
+    assert.equal(headphones.needsProfile, null)
+})
+
+test("buildOutputTargets marks a latent port with the profile it needs", () => {
+    const targets = lib.buildOutputTargets(lib.parseCards(fixture), [])
+    const speaker = targets.find(t => t.label === "Speaker")
+    assert.equal(speaker.node, null)
+    assert.equal(speaker.needsProfile, "HiFi (HDMI1, HDMI2, HDMI3, Mic1, Mic2, Speaker)")
+})
+
+test("buildOutputTargets never returns both a node and a needed profile", () => {
+    const nodes = [nodeStub(
+        "alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__Headphones__sink",
+        "Headphones")]
+    for (const target of lib.buildOutputTargets(lib.parseCards(fixture), nodes))
+        assert.ok(target.node === null || target.needsProfile === null)
+})
+
+test("buildOutputTargets tolerates no cards at all", () => {
+    // Not assert.deepEqual([], []): an array built inside the vm sandbox has a
+    // different Array.prototype object than a native literal, so strict deep
+    // equality on [[Prototype]] fails even though both are empty arrays.
+    assert.equal(lib.buildOutputTargets([], []).length, 0)
+    assert.equal(lib.buildOutputTargets(null, null).length, 0)
+})
+
+test("buildOutputTargets carries the port's type for icon selection", () => {
+    const targets = lib.buildOutputTargets(lib.parseCards(fixture), [])
+    const speaker = targets.find(t => t.label === "Speaker")
+    const hdmi = targets.find(t => t.portName === "[Out] HDMI1")
+    assert.equal(speaker.type, "Speaker")
+    assert.equal(hdmi.type, "HDMI")
+})
