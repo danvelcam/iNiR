@@ -13,7 +13,14 @@ StyledPopup {
     // Click-driven, not hover-driven: picking an output is a deliberate act and
     // a hover popup would fight the pointer on the way to the list.
     hoverActivates: false
-    closeOnOutsideClick: true
+    // NOT true: StyledPopup's own outside-click backdrop (StyledPopup.qml:31-45)
+    // never instantiates. It is declared as a bare child of the LazyLoader whose
+    // default property is `Item contentItem`, but a PanelWindow is not an Item,
+    // so QML silently drops it -- no warning, no qmllint error. Do not flip this
+    // back to true expecting it to start working; outside-click-to-close is
+    // implemented independently in VolumeIndicator.qml, whose root MouseArea
+    // actually has a `data` list that can hold the backdrop.
+    closeOnOutsideClick: false
 
     readonly property list<var> targets: Audio.outputTargets
     readonly property list<var> appNodes: MprisController.mixerAppNodes
