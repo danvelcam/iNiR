@@ -87,10 +87,15 @@ test("pickProfileForPort returns null when the port is already reachable", () =>
 
 // buildOutputTargets joins card ports with live PipeWire nodes. Nodes are passed
 // in as plain objects: the function must not touch anything Qt-specific.
-const nodeStub = (name, description) => ({
-    id: 1, name, description,
-    properties: { "node.name": name, "api.alsa.path": "" },
-})
+// deviceId is optional on purpose: a node created from a card carries
+// "device.id" (PipeWire's own link to its parent device), but other node
+// kinds carry none at all, and both shapes have to keep working.
+const nodeStub = (name, description, deviceId) => {
+    const properties = { "node.name": name, "api.alsa.path": "" }
+    if (deviceId !== undefined)
+        properties["device.id"] = deviceId
+    return { id: 1, name, description, properties }
+}
 
 test("buildOutputTargets attaches a node to the port it belongs to", () => {
     const cards = lib.parseCards(fixture)
@@ -342,4 +347,189 @@ test("buildOutputTargets still resolves when the node name carries no recognisab
     const headphones = targets.find(t => t.portName === "[Out] Headphones")
     assert.equal(headphones.node, node)
     assert.equal(headphones.needsProfile, null)
+})
+
+// Round-4 finding: card affinity by name stem degrades to silent
+// non-assignment in two realistic shapes -- two Bluetooth cards, whose
+// "bluez_card." stem never appears in a "bluez_output." node name, and two
+// USB cards of identical hardware, which PipeWire names by appending "-2" to
+// the first card's own name so one stem is a token-boundary prefix of the
+// other. Both score equal on every card, tie, and the live node is dropped
+// from every target. The fix is the hard parent-child link PipeWire itself
+// maintains: a node's "device.id" is its device's global object id, which
+// pactl reports back as the card's own properties["object.id"].
+//
+// NOTE ON THE ID NAMESPACE, verified on live hardware before writing this:
+// pactl's top-level `index` is NOT that global id -- pipewire-pulse reports
+// `object.serial` as the pulse index (an alsa sink here has index 3739,
+// object.serial 3739 and object.id 76). WirePlumber sets a node's device.id
+// to the parent device's bound (global) id, so `object.id` is the field that
+// joins. Every synthetic card below therefore carries an `index` that
+// deliberately differs from its `deviceId`: joining on the wrong one fails
+// these tests.
+const bluezCardA = {
+    name: "bluez_card.AA_BB", index: 4711, deviceId: "41",
+    activeProfile: "a2dp-sink",
+    profiles: [{ name: "a2dp-sink", priority: 100, available: true, sinks: 1 }],
+    ports: {
+        "[Out] Headphones": {
+            description: "Headphones", type: "Headphones", priority: 100,
+            availability: "available", properties: {}, profiles: ["a2dp-sink"],
+        },
+    },
+}
+const bluezCardB = {
+    name: "bluez_card.CC_DD", index: 4712, deviceId: "42",
+    activeProfile: "a2dp-sink",
+    profiles: [{ name: "a2dp-sink", priority: 100, available: true, sinks: 1 }],
+    ports: {
+        "[Out] Headphones": {
+            description: "Headphones", type: "Headphones", priority: 100,
+            availability: "available", properties: {}, profiles: ["a2dp-sink"],
+        },
+    },
+}
+
+test("buildOutputTargets uses the PipeWire device link when no card stem is recoverable", () => {
+    // Neither card's stem can ever appear in a bluez_output.* node name, so
+    // the name heuristic finds nothing on either card and both score exactly
+    // the same on port name alone. Only the device link can tell them apart.
+    const node = nodeStub("bluez_output.AA_BB.1.Headphones", "Headphones", "41")
+    const targets = lib.buildOutputTargets([bluezCardA, bluezCardB], [node])
+    const first = targets.find(t => t.cardName === "bluez_card.AA_BB")
+    const second = targets.find(t => t.cardName === "bluez_card.CC_DD")
+    assert.equal(first.node, node)
+    assert.equal(second.node, null)
+    assert.notEqual(first.node, second.node)
+})
+
+test("buildOutputTargets uses the device link when one card's name is a prefix of another's", () => {
+    // PipeWire's own naming for two identical USB cards: the second is the
+    // first's name plus "-2", so the first card's stem is a token-boundary
+    // match inside the second card's node names. Both stems hit, both score
+    // the same, and only the device link says which card the node is on.
+    const firstCard = {
+        name: "alsa_card.usb-Vendor_Product-00", index: 5001, deviceId: "60",
+        activeProfile: "HiFi (Line Out)",
+        profiles: [{ name: "HiFi (Line Out)", priority: 100, available: true, sinks: 1 }],
+        ports: {
+            "[Out] Line Out": {
+                description: "Line Out", type: "Line", priority: 100,
+                availability: "available", properties: {}, profiles: ["HiFi (Line Out)"],
+            },
+        },
+    }
+    const secondCard = {
+        name: "alsa_card.usb-Vendor_Product-00-2", index: 5002, deviceId: "61",
+        activeProfile: "HiFi (Line Out)",
+        profiles: [{ name: "HiFi (Line Out)", priority: 100, available: true, sinks: 1 }],
+        ports: {
+            "[Out] Line Out": {
+                description: "Line Out", type: "Line", priority: 100,
+                availability: "available", properties: {}, profiles: ["HiFi (Line Out)"],
+            },
+        },
+    }
+    const node = nodeStub(
+        "alsa_output.usb-Vendor_Product-00-2.HiFi-Line-Out-sink", "Line Out", "61")
+    const targets = lib.buildOutputTargets([firstCard, secondCard], [node])
+    const first = targets.find(t => t.cardName === "alsa_card.usb-Vendor_Product-00")
+    const second = targets.find(t => t.cardName === "alsa_card.usb-Vendor_Product-00-2")
+    assert.equal(second.node, node)
+    assert.equal(first.node, null)
+    assert.notEqual(first.node, second.node)
+})
+
+test("buildOutputTargets never awards affinity on a card the device link rules out", () => {
+    // Adversarial: both name signals point at the first card -- it owns the
+    // longer, more specific port name AND its stem is in the node name -- but
+    // the node's device.id says it hangs off the second card. A definite
+    // negative must beat both name signals, not be overridden by them.
+    const wrongCard = {
+        name: "alsa_card.aaa", index: 6001, deviceId: "10",
+        activeProfile: "HiFi (Rear Speaker)",
+        profiles: [{ name: "HiFi (Rear Speaker)", priority: 100, available: true, sinks: 1 }],
+        ports: {
+            "[Out] Rear Speaker": {
+                description: "Rear Speaker", type: "Speaker", priority: 100,
+                availability: "available", properties: {}, profiles: ["HiFi (Rear Speaker)"],
+            },
+        },
+    }
+    const owningCard = {
+        name: "alsa_card.bbb", index: 6002, deviceId: "11",
+        activeProfile: "HiFi (Speaker)",
+        profiles: [{ name: "HiFi (Speaker)", priority: 100, available: true, sinks: 1 }],
+        ports: {
+            "[Out] Speaker": {
+                description: "Speaker", type: "Speaker", priority: 100,
+                availability: "available", properties: {}, profiles: ["HiFi (Speaker)"],
+            },
+        },
+    }
+    const node = nodeStub("alsa_output.aaa.HiFi__Rear_Speaker__sink", "Rear Speaker", "11")
+    const targets = lib.buildOutputTargets([wrongCard, owningCard], [node])
+    assert.equal(targets.find(t => t.cardName === "alsa_card.aaa").node, null)
+    assert.equal(targets.find(t => t.cardName === "alsa_card.bbb").node, node)
+})
+
+test("buildOutputTargets still resolves a node that carries no device.id at all", () => {
+    // The card knows its device id but the node carries none (a loopback or
+    // any node kind WirePlumber did not create from a device). That is no
+    // evidence against the card, so the name-stem fallback must still run.
+    const card = {
+        name: "alsa_card.usb_dock", index: 7001, deviceId: "62",
+        activeProfile: "HiFi (Line Out)",
+        profiles: [{ name: "HiFi (Line Out)", priority: 100, available: true, sinks: 1 }],
+        ports: {
+            "[Out] Line Out": {
+                description: "Line Out", type: "Line", priority: 100,
+                availability: "available", properties: {}, profiles: ["HiFi (Line Out)"],
+            },
+        },
+    }
+    const node = nodeStub("alsa_output.usb_dock.HiFi-Line-Out-sink", "Line Out")
+    const target = lib.buildOutputTargets([card], [node]).find(t => t.portName === "[Out] Line Out")
+    assert.equal(target.node, node)
+    assert.equal(target.needsProfile, null)
+})
+
+test("buildOutputTargets keeps the real fixture's ports on their own nodes when nodes carry a device link", () => {
+    // Same shape as the fixture regression test above, but every node now
+    // carries the device.id PipeWire really reports for this card (the
+    // fixture's own properties["object.id"]), so all four score the affinity
+    // bonus at once and the intra-card specificity ranking still has to
+    // separate them.
+    const cards = lib.parseCards(fixture)
+    const stem = "alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__"
+    const hdmi1 = nodeStub(stem + "HDMI1__sink", "HDMI1", "50")
+    const hdmi2 = nodeStub(stem + "HDMI2__sink", "HDMI2", "50")
+    const hdmi3 = nodeStub(stem + "HDMI3__sink", "HDMI3", "50")
+    const headphones = nodeStub(stem + "Headphones__sink", "Headphones", "50")
+    const targets = lib.buildOutputTargets(cards, [hdmi1, hdmi2, hdmi3, headphones])
+    const byPort = name => targets.find(t => t.portName === name)
+
+    assert.equal(byPort("[Out] HDMI1").node, hdmi1)
+    assert.equal(byPort("[Out] HDMI2").node, hdmi2)
+    assert.equal(byPort("[Out] HDMI3").node, hdmi3)
+    assert.equal(byPort("[Out] Headphones").node, headphones)
+
+    const assignedNodes = targets.map(t => t.node).filter(n => n !== null)
+    assert.equal(new Set(assignedNodes).size, assignedNodes.length)
+})
+
+test("parseCards reads the card's device id from object.id, not from the pulse index", () => {
+    // pactl's `index` is the pulse-protocol object.serial; the id a node's
+    // device.id points at is the PipeWire global object.id. They coincide for
+    // a card created at startup and diverge for anything hotplugged after the
+    // graph has churned, which is exactly the multi-card case this matters
+    // for -- so parseCards must read object.id.
+    const payload = JSON.stringify([{
+        name: "alsa_card.hotplugged", index: 4600, active_profile: "off",
+        profiles: {}, ports: {},
+        properties: { "object.id": "91", "object.serial": "4600" },
+    }])
+    const card = lib.parseCards(payload)[0]
+    assert.equal(card.index, 4600)
+    assert.equal(card.deviceId, "91")
 })

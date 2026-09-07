@@ -43,9 +43,22 @@ function parseCards(jsonText) {
             })
         }
 
+        var cardProperties = card.properties || {}
         cards.push({
             name: name,
             index: Number(card.index !== undefined ? card.index : -1),
+            // The PipeWire global object id of the device behind this card,
+            // kept as a string because that is how both sides of the join
+            // spell it. NOT `index`: pipewire-pulse reports "object.serial"
+            // as the pulse index (verified on live hardware -- an alsa sink
+            // there has index 3739, object.serial 3739 and object.id 76),
+            // while a node's "device.id" points at the device's *global* id,
+            // which pactl exposes here as properties["object.id"]. The two
+            // agree for a card created at startup and diverge for anything
+            // hotplugged later. "" when pactl reports no id at all.
+            deviceId: String(cardProperties["object.id"] !== undefined
+                && cardProperties["object.id"] !== null
+                ? cardProperties["object.id"] : ""),
             activeProfile: String(card.active_profile !== undefined ? card.active_profile : ""),
             profiles: profiles,
             ports: card.ports || {},
@@ -125,14 +138,59 @@ function canonicalToken(value) {
     return String(value).toLowerCase().replace(/[\s_.-]+/g, "_").replace(/^_+|_+$/g, "")
 }
 
+// One place that knows where a node keeps its metadata, so every reader below
+// stays in step with the others.
+function nodePropertiesOf(node) {
+    return (node && node.properties) || {}
+}
+
 // The PipeWire node name, wherever it actually lives. Shared by matchStrength
 // and cardAffinity so the two never drift apart on how they read a node.
 function nodeNameOf(node) {
-    if (!node)
-        return ""
-    var properties = node.properties || {}
+    var properties = nodePropertiesOf(node)
     return String(properties["node.name"] !== undefined
-        ? properties["node.name"] : (node.name || ""))
+        ? properties["node.name"] : ((node && node.name) || ""))
+}
+
+// The global object id of the device this node hangs off, as a string, or ""
+// when the node carries no such link. WirePlumber stamps "device.id" on every
+// node it creates from a device with that device's bound (global) id, so this
+// is a fact PipeWire maintains rather than anything inferred from a name --
+// and it exists on bluez nodes too, where names carry no card signal at all.
+function nodeDeviceId(node) {
+    var properties = nodePropertiesOf(node)
+    var value = properties["device.id"]
+    return value === undefined || value === null ? "" : String(value)
+}
+
+// Verdict of the node/card hard join. UNKNOWN is not "no": it means one side
+// never reported an id, so the join has nothing to say and the name heuristic
+// below has to answer instead.
+var DEVICE_LINK_MISMATCH = -1
+var DEVICE_LINK_UNKNOWN = 0
+var DEVICE_LINK_MATCH = 1
+
+function deviceLink(nodeId, cardId) {
+    if (nodeId.length === 0 || cardId.length === 0)
+        return DEVICE_LINK_UNKNOWN
+    // Compared as strings: pactl reports ids as JSON strings and a PwNode
+    // property is a string, but a hand-built card object may hold a number.
+    return nodeId === cardId ? DEVICE_LINK_MATCH : DEVICE_LINK_MISMATCH
+}
+
+function findCard(cards, cardName) {
+    for (var i = 0; i < cards.length; i++) {
+        if (cards[i] && cards[i].name === cardName)
+            return cards[i]
+    }
+    return null
+}
+
+function cardDeviceIdOf(cards, cardName) {
+    var card = findCard(cards, cardName)
+    if (!card || card.deviceId === undefined || card.deviceId === null)
+        return ""
+    return String(card.deviceId)
 }
 
 // Length of the canonical port name when it appears in the node name as a
@@ -167,15 +225,17 @@ function matchStrength(node, port) {
 // Whether a node's name carries the given card's own name as a stem, e.g.
 // card "alsa_card.pci-0000_00_1f.3-platform-skl_hda_dsp_generic" produces
 // nodes named "alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic....".
-// This is the only signal that can tell apart two cards that happen to
-// expose an identically-named port (two "Line Out"s, one onboard and one on
-// a USB dock): a port-name match alone cannot distinguish them, since it
-// never looks at which card the node actually came from.
+// Fallback only: it is consulted when the hard device link above cannot
+// answer, and it guesses card ownership from spelling, which the link knows
+// for certain. Both sides are padded and compared at a token boundary, the
+// same way matchStrength does, so a stem cannot match halfway through a
+// longer word ("dock" inside "dockstation").
 function cardAffinity(node, cardName) {
     var stem = canonicalToken(String(cardName).replace(/^alsa_card\./, ""))
     if (stem.length === 0)
         return false
-    return canonicalToken(nodeNameOf(node)).indexOf(stem) !== -1
+    var haystack = "_" + canonicalToken(nodeNameOf(node)) + "_"
+    return haystack.indexOf("_" + stem + "_") !== -1
 }
 
 // Exceeds any realistic canonical port-name length (matchStrength's return
@@ -212,19 +272,38 @@ function buildOutputTargets(cards, nodes) {
     // decided port-by-port -- doing so lets the same live node attach to two
     // different cards' targets at once. Instead every node is placed in one
     // global pass: for each node, the highest-scoring eligible target wins
-    // it outright (a tie assigns it to nobody, failing closed exactly as an
-    // ambiguous same-card match does); the score is the port-name match
-    // strength, boosted by CARD_AFFINITY_BONUS when the node's own name
-    // confirms it belongs to that port's card. If that leaves one target as
-    // the top scorer for more than one node, it keeps only the strongest of
-    // those and the rest are left unassigned rather than spilling over to
+    // it outright; the score is the port-name match strength, boosted by
+    // CARD_AFFINITY_BONUS when the node is confirmed to belong to that
+    // port's card.
+    //
+    // The two tie directions are deliberately NOT symmetric, and making them
+    // symmetric would be a regression in whichever direction it was applied:
+    //
+    //  - Several targets tie for one node: nobody gets it. The node's
+    //    identity is genuinely ambiguous, and guessing would route audio out
+    //    of the wrong physical device -- a worse outcome than showing one
+    //    output as not-live.
+    //  - Several nodes tie for one target: the first in list order keeps it
+    //    (the `>` below never lets a later, equal-scoring node displace it).
+    //    Duplicate nodes for one port are a transient of profile-switch
+    //    churn -- the old node lingers for a moment beside the new one --
+    //    and outputTargets is a reactive QML property that recomputes as
+    //    soon as PipeWire drops the stale node. Failing closed here would
+    //    make the target flicker to "not live" on every profile switch.
+    //
+    // A target that wins more than one node keeps only the strongest of
+    // them; the rest are left unassigned rather than spilling over to
     // whichever target came second.
     var bestScoreByTarget = []
-    for (var z = 0; z < targets.length; z++)
+    var cardDeviceIdByPort = []
+    for (var z = 0; z < targets.length; z++) {
         bestScoreByTarget.push(0)
+        cardDeviceIdByPort.push(cardDeviceIdOf(cards, ports[z].cardName))
+    }
 
     for (var n = 0; n < nodeList.length; n++) {
         var node = nodeList[n]
+        var thisNodeDeviceId = nodeDeviceId(node)
         var bestScore = 0
         var bestTarget = -1
         var tiedAtBest = false
@@ -236,7 +315,17 @@ function buildOutputTargets(cards, nodes) {
             var score = matchStrength(node, ports[t])
             if (score === 0)
                 continue
-            if (cardAffinity(node, ports[t].cardName))
+
+            // Card ownership is decided by PipeWire's own parent-child link
+            // whenever both sides report an id; the name-stem heuristic only
+            // fills in for node kinds that carry no "device.id" at all (and
+            // for cards pactl gave no "object.id"). A link that names a
+            // *different* card is a definite negative and ends the question:
+            // falling back to the heuristic there would let a spelling
+            // coincidence overrule a fact.
+            var link = deviceLink(thisNodeDeviceId, cardDeviceIdByPort[t])
+            if (link === DEVICE_LINK_MATCH
+                || (link === DEVICE_LINK_UNKNOWN && cardAffinity(node, ports[t].cardName)))
                 score += CARD_AFFINITY_BONUS
 
             if (score > bestScore) {
@@ -258,13 +347,7 @@ function buildOutputTargets(cards, nodes) {
     }
 
     for (var k = 0; k < targets.length; k++) {
-        var card = null
-        for (var c = 0; c < cards.length; c++) {
-            if (cards[c].name === ports[k].cardName) {
-                card = cards[c]
-                break
-            }
-        }
+        var card = findCard(cards, ports[k].cardName)
         // Mutually exclusive with `node` by construction: pickProfileForPort
         // returns null whenever the port sits in the active profile.
         targets[k].needsProfile = targets[k].node !== null
