@@ -2,11 +2,12 @@
 # Auto-generated from QML IpcHandler declarations + docs/IPC.md metadata.
 # Do not edit manually.
 # Regenerate: python3 scripts/lib/generate-ipc-registry.py
-# IPC.md hash: b4a4806b9812ec75
-# Targets: 62
+# IPC.md hash: 52e4dfc8dea9d437
+# Targets: 63
 
 declare -gA IPC_TARGET_DESC=(
   [ai]="Shared multi-provider AI service. It supports Gemini, OpenAI-compatible chat and Responses APIs, Mistral and Anthropic; live provider catalogs are normalized into capability-aware model records. Catalog visibility is separate from execution readiness, so public model lists remain browseable without pretending an API key exists. OpenCode Zen and Go resolve their current model lists and per-model API routes dynamically. Normal shell tools use typed actions and approval cards, while arbitrary commands are isolated in Advanced mode."
+  [allApps]="Open the overview straight into the all-apps grid, leaving the workspace overview on its own trigger. This is the mode the dock's apps button uses, so both views stay reachable without changing \`overview.allAppsGrid\` in the config."
   [altSwitcher]="Alt+Tab window switcher. Works across workspaces, unlike some other implementations we won't name."
   [appCatalog]="App catalog service. Browse, search, and install curated applications."
   [audio]="Volume and mute control."
@@ -72,6 +73,7 @@ declare -gA IPC_TARGET_DESC=(
 
 declare -gA IPC_TARGET_FAMILY=(
   [ai]="shared"
+  [allApps]="shared"
   [altSwitcher]="shared"
   [appCatalog]="shared"
   [audio]="shared"
@@ -137,6 +139,7 @@ declare -gA IPC_TARGET_FAMILY=(
 
 declare -gA IPC_TARGET_FUNCTIONS=(
   [ai]="ensureInitialized diagnose refreshCatalog catalog providers run runGet"
+  [allApps]="toggle open close"
   [altSwitcher]="open close toggle next previous"
   [appCatalog]="refresh search install list"
   [audio]="volumeUp volumeDown mute playEvent micMute"
@@ -208,6 +211,9 @@ declare -gA IPC_FUNCTION_DESC=(
   ["ai:providers"]="Return provider health, key state and live model counts"
   ["ai:run"]="Send a message or compatibility \`/command\` to AI chat"
   ["ai:runGet"]="Run an AI command and return the last response"
+  ["allApps:toggle"]="Open/close the all-apps grid"
+  ["allApps:open"]="Open the all-apps grid on the focused output"
+  ["allApps:close"]="Close the overview if the all-apps grid is what is showing"
   ["altSwitcher:open"]="Open switcher"
   ["altSwitcher:close"]="Close switcher"
   ["altSwitcher:toggle"]="Toggle switcher"
@@ -536,6 +542,7 @@ declare -gA IPC_FUNCTION_ARGS=(
 )
 
 declare -gA IPC_TARGET_EXAMPLE=(
+  [allApps]='bind "Mod+P" { spawn "inir" "allApps" "toggle"; }'
   [altSwitcher]='bind "Alt+Tab" { spawn "inir" "altSwitcher" "next"; }
 bind "Alt+Shift+Tab" { spawn "inir" "altSwitcher" "previous"; }'
   [background]='bind "Super+W" { spawn "inir" "background" "toggleEditMode"; }'
@@ -569,12 +576,13 @@ bind "Ctrl+Alt+A" { spawn "inir" "wallpaperSelector" "openLauncher" "animated"; 
   [ytmusic]='bind "Mod+M+Space" { spawn "inir" "ytmusic" "playPause"; }'
 )
 
-IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio autostart background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector customWidgets dashboard dev equalizer gamemode globalActions keyboard lock mascot mascotMood mediaControls memory minimize mpris notifications orbit osd osdVolume osk overlay overview packageSearch panelFamily pill recordingOsd region search session settings settingsNav shellLayout shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch wactionCenter waffleAltSwitcher wallpaperLauncher wallpaperSelector wbar widgetpower wnotificationCenter workspaceStrip wwidgets ytmusic zoom)
-IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector dashboard dev gamemode globalActions keyboard lock mascot mascotMood mediaControls memory minimize mpris notifications orbit osdVolume osk overlay overview packageSearch panelFamily pill region session settings settingsNav shellLayout shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch wallpaperLauncher wallpaperSelector workspaceStrip ytmusic zoom)
+IPC_ALL_TARGETS=(ai allApps altSwitcher appCatalog audio autostart background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector customWidgets dashboard dev equalizer gamemode globalActions keyboard lock mascot mascotMood mediaControls memory minimize mpris notifications orbit osd osdVolume osk overlay overview packageSearch panelFamily pill recordingOsd region search session settings settingsNav shellLayout shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch wactionCenter waffleAltSwitcher wallpaperLauncher wallpaperSelector wbar widgetpower wnotificationCenter workspaceStrip wwidgets ytmusic zoom)
+IPC_SHARED_TARGETS=(ai allApps altSwitcher appCatalog audio background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector dashboard dev gamemode globalActions keyboard lock mascot mascotMood mediaControls memory minimize mpris notifications orbit osdVolume osk overlay overview packageSearch panelFamily pill region session settings settingsNav shellLayout shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch wallpaperLauncher wallpaperSelector workspaceStrip ytmusic zoom)
 IPC_II_TARGETS=(equalizer)
 IPC_WAFFLE_TARGETS=(autostart customWidgets osd recordingOsd search wactionCenter waffleAltSwitcher wbar widgetpower wnotificationCenter wwidgets)
 
 declare -gA IPC_KEBAB_ALIASES=(
+  [all-apps]=allApps
   [alt-switcher]=altSwitcher
   [app-catalog]=appCatalog
   [cliphist-service]=cliphistService

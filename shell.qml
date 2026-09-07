@@ -444,6 +444,13 @@ ShellRoot {
     }
 
     IpcHandler {
+        target: "allApps"
+        function toggle(): void { GlobalStates.toggleAllApps("") }
+        function open(): void { GlobalStates.openAllApps("") }
+        function close(): void { if (GlobalStates.overviewMode === "allApps") GlobalStates.closeOverview() }
+    }
+
+    IpcHandler {
         target: "orbit"
         function toggle(): void { if (CompositorService.isNiri) GlobalStates.toggleOrbit("") }
         function close(): void { if (GlobalStates.overviewMode === "orbit") GlobalStates.closeOverview() }

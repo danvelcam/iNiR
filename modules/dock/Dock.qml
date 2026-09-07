@@ -517,7 +517,7 @@ Scope {
                                 DockButton {
                                     vertical: false
                                     dockPosition: root.position
-                                    onClicked: GlobalStates.toggleOverview(dockRoot.screen?.name ?? "")
+                                    onClicked: GlobalStates.toggleAllApps(dockRoot.screen?.name ?? "")
                                     contentItem: MaterialSymbol {
                                         anchors.centerIn: parent
                                         font.pixelSize: parent.width * 0.5
@@ -549,7 +549,7 @@ Scope {
                                 DockButton {
                                     vertical: true
                                     dockPosition: root.position
-                                    onClicked: GlobalStates.toggleOverview(dockRoot.screen?.name ?? "")
+                                    onClicked: GlobalStates.toggleAllApps(dockRoot.screen?.name ?? "")
                                     contentItem: MaterialSymbol {
                                         anchors.centerIn: parent
                                         font.pixelSize: parent.width * 0.5

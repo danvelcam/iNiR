@@ -59,6 +59,7 @@ Scope {
             property bool orbitLensOpen: false
             property string orbitLensText: ""
             readonly property bool orbitMode: GlobalStates.overviewMode === "orbit"
+            readonly property bool allAppsMode: GlobalStates.overviewMode === "allApps"
             readonly property var configuredOrbitOptions: Config.options?.orbit ?? {}
             readonly property var orbitOptions: root.mergeOrbitOptions(
                 root.configuredOrbitOptions, root.orbitStudioDraft)
@@ -1405,7 +1406,7 @@ Scope {
                     readonly property bool dashboardMode: Config.options?.overview?.dashboard?.enable ?? false
                     readonly property bool allAppsGridEnabled: Config.options?.overview?.allAppsGrid ?? false
                     active: (root.orbitMode ? root.visible : root.shouldShow)
-                        && (root.orbitMode || (!dashboardMode && !allAppsGridEnabled))
+                        && (root.orbitMode || (!dashboardMode && !allAppsGridEnabled && !root.allAppsMode))
                         && (root.orbitMode || (Config.options?.overview?.enable ?? true))
                     visible: active && (root.searchingText == "")
                     sourceComponent: root.orbitMode
@@ -1523,7 +1524,8 @@ Scope {
                     anchors.horizontalCenter: parent.horizontalCenter
                     readonly property bool allAppsEnabled: Config.options?.overview?.allAppsGrid ?? false
                     readonly property bool dashboardMode: Config.options?.overview?.dashboard?.enable ?? false
-                    active: root.shouldShow && !root.orbitMode && allAppsEnabled && !dashboardMode
+                    active: root.shouldShow && !root.orbitMode
+                        && (allAppsEnabled || root.allAppsMode) && !dashboardMode
                     visible: active && (root.searchingText == "")
                     sourceComponent: allAppsGridComponent
                 }

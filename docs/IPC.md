@@ -76,6 +76,22 @@ bind "Mod+Space" { spawn "inir" "overview" "toggle"; }
 
 ---
 
+### allApps
+
+Open the overview straight into the all-apps grid, leaving the workspace overview on its own trigger. This is the mode the dock's apps button uses, so both views stay reachable without changing `overview.allAppsGrid` in the config.
+
+| Function | Description |
+|----------|-------------|
+| `toggle` | Open/close the all-apps grid |
+| `open` | Open the all-apps grid on the focused output |
+| `close` | Close the overview if the all-apps grid is what is showing |
+
+```kdl
+bind "Mod+P" { spawn "inir" "allApps" "toggle"; }
+```
+
+---
+
 ### orbit
 
 Niri-only Material session navigator for the ii family. Orbit presents nearby workspaces and readable window previews, with MRU Trail navigation and temporary Stash parking.

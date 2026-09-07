@@ -393,6 +393,21 @@ Singleton {
             root.openOverview(resolved)
     }
 
+    function openAllApps(outputName): void {
+        overviewMode = "allApps"
+        overviewSearchPrefix = ""
+        overviewTargetOutput = root.resolveOutputName(outputName, [])
+        overviewOpen = true
+    }
+
+    function toggleAllApps(outputName): void {
+        const resolved = root.resolveOutputName(outputName, [])
+        if (overviewOpen && overviewMode === "allApps" && overviewPresentationOutput === resolved)
+            root.closeOverview()
+        else
+            root.openAllApps(resolved)
+    }
+
     function openOrbit(outputName): void {
         if (!CompositorService.isNiri || !(Config.options?.orbit?.enable ?? true))
             return
