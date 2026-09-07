@@ -36,18 +36,18 @@ ColumnLayout {
         left: ["leftSidebarButton", "activeWindow"],
         centerLeft: ["resources", "media"],
         center: ["workspaces"],
-        centerRight: ["clock", "utilButtons", "battery"],
+        centerRight: ["clock", "utilButtons", "battery", "volume"],
         right: ["rightSidebarButton", "tray", "timer", "shellUpdate", "spacer", "weather"],
     })
     readonly property var _knownIds: [
         "leftSidebarButton", "activeWindow", "resources", "media", "workspaces",
-        "clock", "utilButtons", "battery", "rightSidebarButton", "tray", "timer", "shellUpdate", "spacer", "weather"
+        "clock", "utilButtons", "battery", "volume", "rightSidebarButton", "tray", "timer", "shellUpdate", "spacer", "weather"
     ]
     readonly property var _zones: ["left", "centerLeft", "center", "centerRight", "right"]
     readonly property var _visKeys: ({
         leftSidebarButton: "leftSidebarButton", activeWindow: "activeWindow",
         resources: "resources", media: "media", workspaces: "workspaces", clock: "clock",
-        utilButtons: "utilButtons", battery: "battery", rightSidebarButton: "rightSidebarButton",
+        utilButtons: "utilButtons", battery: "battery", volume: "volume", rightSidebarButton: "rightSidebarButton",
         tray: "sysTray", weather: "weather",
     })
 
@@ -56,7 +56,7 @@ ColumnLayout {
             return "dock_to_bottom"
         return ({ leftSidebarButton: "side_navigation", activeWindow: "window",
             resources: "memory", media: "music_note", workspaces: "workspaces", clock: "schedule",
-            utilButtons: "build", battery: "battery_full", rightSidebarButton: "call_to_action",
+            utilButtons: "build", battery: "battery_full", volume: "volume_up", rightSidebarButton: "call_to_action",
             tray: "shelf_auto_hide", timer: "timer", shellUpdate: "system_update", spacer: "space_bar",
             weather: "cloud" })[id] || "widgets"
     }
@@ -66,7 +66,7 @@ ColumnLayout {
         return ({ leftSidebarButton: Translation.tr("Left sidebar"), activeWindow: Translation.tr("Active window"),
             resources: Translation.tr("Resources"), media: Translation.tr("Media"),
             workspaces: Translation.tr("Workspaces"), clock: Translation.tr("Clock"), utilButtons: Translation.tr("Utility buttons"),
-            battery: Translation.tr("Battery"), rightSidebarButton: Translation.tr("Right sidebar"), tray: Translation.tr("System tray"),
+            battery: Translation.tr("Battery"), volume: Translation.tr("Volume"), rightSidebarButton: Translation.tr("Right sidebar"), tray: Translation.tr("System tray"),
             timer: Translation.tr("Timer"), shellUpdate: Translation.tr("Shell update"), spacer: Translation.tr("Flexible spacer"),
             weather: Translation.tr("Weather") })[id] || id
     }

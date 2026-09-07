@@ -1422,6 +1422,9 @@ if [[ "$run_runtime" == true ]]; then
     bash "$launcher" ipc shellUpdate diagnose >/dev/null
 fi
 
+step "audio card profile helpers"
+node "$runtime_root/scripts/test-audio-cards.mjs"
+
 step "installed payload boundaries"
 python3 "$runtime_root/scripts/test-runtime-payload.py"
 

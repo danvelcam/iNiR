@@ -460,7 +460,7 @@ Item { // Bar content region
     readonly property var _leftIds:        root._zone("left",        ["leftSidebarButton", "activeWindow"])
     readonly property var _centerLeftIds:  root._zone("centerLeft",  ["resources", "media"])
     readonly property var _centerIds:      root._zone("center",      ["workspaces"])
-    readonly property var _centerRightIds: root._zone("centerRight", ["clock", "utilButtons", "battery"])
+    readonly property var _centerRightIds: root._zone("centerRight", ["clock", "utilButtons", "battery", "volume"])
     readonly property var _rightIds:       root._zone("right",       ["rightSidebarButton", "tray", "timer", "shellUpdate", "spacer", "weather"])
 
     function _moduleVisible(id) { return Config.options?.bar?.modules?.[id] ?? true }
@@ -483,6 +483,7 @@ Item { // Bar content region
         if (id === "media") return root.useShortenedForm < 2;
         if (id === "utilButtons") return (Config.options?.bar?.verbose ?? true) && root.useShortenedForm === 0;
         if (id === "battery") return root.useShortenedForm < 2 && Battery.available;
+        if (id === "volume") return root.useShortenedForm < 2;
         if (id === "weather") return Config.options?.bar?.weather?.enable ?? false;
         return true;
     }
@@ -500,6 +501,7 @@ Item { // Bar content region
         "clock": clockModuleComponent,
         "utilButtons": utilButtonsModuleComponent,
         "battery": batteryModuleComponent,
+        "volume": volumeModuleComponent,
         "rightSidebarButton": rightSidebarButtonComponent,
         "tray": trayComponent,
         "timer": timerComponent,
@@ -1469,6 +1471,7 @@ Item { // Bar content region
     // edge. `spacer` is a flexible gap.
     Component { id: timerComponent; TimerIndicator { Layout.alignment: Qt.AlignVCenter } }
     Component { id: shellUpdateComponent; ShellUpdateIndicator { Layout.alignment: Qt.AlignVCenter } }
+    Component { id: volumeModuleComponent; VolumeIndicator { Layout.alignment: Qt.AlignVCenter } }
     Component {
         id: spacerComponent
         Item {

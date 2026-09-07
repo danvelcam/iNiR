@@ -5,6 +5,7 @@ singleton AppCatalog 1.0 AppCatalog.qml
 singleton AppLauncher 1.0 AppLauncher.qml
 singleton AppSearch 1.0 AppSearch.qml
 singleton Audio 1.0 Audio.qml
+singleton AudioCards 1.0 AudioCards.qml
 singleton Autostart 1.0 Autostart.qml
 singleton Battery 1.0 Battery.qml
 singleton BluetoothStatus 1.0 BluetoothStatus.qml
