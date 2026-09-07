@@ -6462,5 +6462,8 @@
   "Not ready": "No listo",
   "Switch profile": "Cambiar perfil",
   "No outputs found": "No se encontraron salidas",
-  "pactl is unavailable, so only the current device can be used": "pactl no está disponible, así que solo se puede usar el dispositivo actual"
+  "pactl is unavailable, so only the current device can be used": "pactl no está disponible, así que solo se puede usar el dispositivo actual",
+  "Output unavailable": "Salida no disponible",
+  "Could not switch output": "No se pudo cambiar la salida",
+  "Could not switch output, and could not restore the previous one either": "No se pudo cambiar la salida, y tampoco se pudo restaurar la anterior"
 }
