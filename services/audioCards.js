@@ -116,9 +116,22 @@ function pickProfileForPort(card, port) {
     return best === null ? null : best.name
 }
 
+// Folds every separator a port/node name pair might use for the same word
+// ("__", ".", "-", " ") to one canonical delimiter and lowercases. A pactl
+// port key can contain spaces ("Line Out"); a PipeWire node.name cannot, so
+// the same port surfaces there with underscores, hyphens or dots instead.
+// Normalising both sides is what lets the two spellings compare equal.
+function canonicalToken(value) {
+    return String(value).toLowerCase().replace(/[\s_.-]+/g, "_").replace(/^_+|_+$/g, "")
+}
+
 // A sink node belongs to a port when its PipeWire node name carries the port's
-// UCM verb ("HiFi__Headphones__sink" for "[Out] Headphones"). Matching on the
-// description instead would break the moment the card is renamed or translated.
+// short name as a whole token, e.g. "HiFi__Headphones__sink" for "[Out]
+// Headphones", or "...HiFi-Line-Out-sink" for "[Out] Line Out" on a card that
+// keys its ports differently. Matching on the description instead would break
+// the moment the card is renamed or translated. Both names are canonicalised
+// and padded with the delimiter before comparing, so this is a token-boundary
+// match, not a raw substring check — "Mic" must not match inside "Microphone".
 function nodeMatchesPort(node, port) {
     if (!node || !port)
         return false
@@ -133,8 +146,12 @@ function nodeMatchesPort(node, port) {
     if (shortName.length === 0)
         return false
 
-    return nodeName.indexOf("__" + shortName + "__") !== -1
-        || nodeName.indexOf("." + shortName + ".") !== -1
+    var needle = canonicalToken(shortName)
+    if (needle.length === 0)
+        return false
+
+    var haystack = "_" + canonicalToken(nodeName) + "_"
+    return haystack.indexOf("_" + needle + "_") !== -1
 }
 
 function buildOutputTargets(cards, nodes) {

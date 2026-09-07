@@ -133,3 +133,36 @@ test("buildOutputTargets carries the port's type for icon selection", () => {
     assert.equal(speaker.type, "Speaker")
     assert.equal(hdmi.type, "HDMI")
 })
+
+// The "never returns both a node and a needed profile" test above is guaranteed
+// by buildOutputTargets's own ternary and would pass even if node matching were
+// completely broken. This is the test that actually proves the spec's claim:
+// an active-profile port with a real matching node must resolve to that node,
+// not silently fall through to node:null/needsProfile:null. It uses a synthetic
+// card (not the fixture, which is UCM-only and has no such case) shaped like a
+// non-UCM/mixer-path card, where pactl port keys can contain spaces
+// ("Line Out") while the PipeWire node name spells the same port with a
+// different separator, since node names cannot contain literal spaces.
+test("buildOutputTargets resolves a multi-token port even when the node name uses different separators", () => {
+    const card = {
+        name: "alsa_card.synthetic",
+        index: 99,
+        activeProfile: "HiFi (Line Out)",
+        profiles: [{ name: "HiFi (Line Out)", priority: 100, available: true, sinks: 1 }],
+        ports: {
+            "[Out] Line Out": {
+                description: "Line Out",
+                type: "Line",
+                priority: 100,
+                availability: "available",
+                properties: {},
+                profiles: ["HiFi (Line Out)"],
+            },
+        },
+    }
+    const node = nodeStub("alsa_output.pci-0000_00_1f.3.HiFi-Line-Out-sink", "Line Out")
+    const target = lib.buildOutputTargets([card], [node]).find(t => t.portName === "[Out] Line Out")
+    assert.equal(target.node, node)
+    assert.notEqual(target.node, null)
+    assert.equal(target.needsProfile, null)
+})
