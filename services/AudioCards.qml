@@ -84,8 +84,12 @@ Singleton {
         stdout: StdioCollector { id: listCardsCollector }
         onExited: (exitCode, _exitStatus) => {
             if (exitCode !== 0) {
-                // pactl missing or PulseAudio layer unavailable. Keep whatever we
-                // had: consumers fall back to node enumeration, never to an empty list.
+                // pactl missing or PulseAudio layer unavailable. `cards` is
+                // left as-is, but that does not spare any consumer an empty
+                // result: services/Audio.qml's outputTargets returns []
+                // whenever ready is false, and the flyout has no other
+                // model to fall back to. There is no node-enumeration
+                // fallback anywhere in this path.
                 root.ready = false
                 root._rearmPendingRefresh()
                 return

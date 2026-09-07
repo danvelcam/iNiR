@@ -77,8 +77,21 @@ function outputPortsOf(cards) {
         var portNames = Object.keys(card.ports || {})
         for (var j = 0; j < portNames.length; j++) {
             var portName = portNames[j]
-            // pactl keys output ports "[Out] <name>" and inputs "[In] <name>".
-            // These keys are not localised, so the prefix is a safe filter.
+            // The "[Out] " prefix is UCM-only: libspa-alsa.so pairs it with
+            // the UCM verbs (e.g. "HiFi"), which is what this laptop's card
+            // uses. Non-UCM ALSA cards key their ports with bare mixer-path
+            // names instead — analog-output-speaker, analog-output-headphones,
+            // analog-output-lineout, hdmi-output, iec958-stereo-output — and
+            // libspa-bluez5.so names Bluetooth ports "%s-output"/"%s-hf-output"
+            // (headphone-output, handsfree-hf-output). None of those carry
+            // this prefix, so classic HDA cards and Bluetooth headsets
+            // contribute zero rows today; this filter does not see them.
+            // Do not widen it on its own: matchStrength (below) scores 0 for
+            // a name like "headphone-output" against a real node such as
+            // "bluez_output.AA_BB.1.a2dp-sink", so an unmatched port would go
+            // from absent to visible-but-permanently-"Not ready", which is
+            // worse. Supporting these families needs a matching rule for
+            // their naming too, not just a wider filter.
             if (portName.indexOf("[Out]") !== 0)
                 continue
 
@@ -95,6 +108,12 @@ function outputPortsOf(cards) {
                 iconName: String(properties["device.icon_name"] !== undefined
                     ? properties["device.icon_name"] : ""),
                 priority: Number(port.priority !== undefined ? port.priority : 0),
+                // Only the literal "not available" flips this false. pactl
+                // also reports "availability unknown" for ports with no
+                // jack-detection hardware -- the real fixture's own
+                // "[Out] Speaker" is exactly that case -- and treating
+                // "unknown" as unavailable would disable the very row this
+                // whole branch exists to enable. Do not tighten this.
                 available: String(port.availability !== undefined ? port.availability : "unknown")
                     !== "not available",
                 profiles: portProfiles,
