@@ -19,6 +19,12 @@ Singleton {
     property var cards: []
     readonly property var outputPorts: AudioCardsLib.outputPortsOf(root.cards)
 
+    // Set when refresh() is called while listCardsProc is already running,
+    // since that call is otherwise silently dropped (refresh() below no-ops
+    // rather than queuing). Drained by listCardsProc.onExited once the
+    // in-flight run finishes, so a refresh requested mid-run is never lost.
+    property bool _refreshPending: false
+
     signal profileApplied(string cardName, string profileName)
     signal profileFailed(string cardName, string profileName, string reason)
 
@@ -37,8 +43,24 @@ Singleton {
     }
 
     function refresh(): void {
-        if (!listCardsProc.running)
-            listCardsProc.running = true
+        if (listCardsProc.running) {
+            root._refreshPending = true
+            return
+        }
+        listCardsProc.running = true
+    }
+
+    // Re-issues a refresh queued while listCardsProc was busy. Deferred with
+    // Qt.callLater rather than calling listCardsProc.running = true directly:
+    // setting running=true from inside this same Process's own onExited
+    // handler is silently dropped (see the `requester` Process in
+    // services/Ai.qml for the same gotcha), so it has to start on the next
+    // event-loop turn instead.
+    function _rearmPendingRefresh(): void {
+        if (!root._refreshPending)
+            return
+        root._refreshPending = false
+        Qt.callLater(() => { listCardsProc.running = true })
     }
 
     function setCardProfile(cardName: string, profileName: string): void {
@@ -65,14 +87,18 @@ Singleton {
                 // pactl missing or PulseAudio layer unavailable. Keep whatever we
                 // had: consumers fall back to node enumeration, never to an empty list.
                 root.ready = false
+                root._rearmPendingRefresh()
                 return
             }
             const parsed = AudioCardsLib.parseCards(listCardsCollector.text ?? "")
             // Discard an unparseable refresh rather than blanking a good state.
-            if (parsed.length === 0 && root.cards.length > 0)
+            if (parsed.length === 0 && root.cards.length > 0) {
+                root._rearmPendingRefresh()
                 return
+            }
             root.cards = parsed
             root.ready = true
+            root._rearmPendingRefresh()
         }
     }
 
@@ -127,7 +153,7 @@ Singleton {
     Timer {
         id: resubscribe
         interval: 2000
-        onTriggered: subscribeProc.running = true
+        onTriggered: { subscribeProc.running = true; root.refresh() }
     }
 
     Component.onCompleted: root.refresh()
