@@ -379,6 +379,13 @@ Singleton {
     property string _switchPreviousProfile: ""
     property var _switchTarget: null
 
+    // Revert-in-flight state, tracked separately from `switching` (which is
+    // already false by the time a revert is issued — see the timeout handler
+    // below). Without its own state, a revert's own failure has no guard left
+    // to land in and is silently dropped.
+    property bool _reverting: false
+    property string _revertCardName: ""
+
     signal targetSwitchFailed(string reason);
 
     function switchToTarget(target): void {
@@ -412,19 +419,30 @@ Singleton {
         root._switchPreviousProfile = ""
     }
 
+    // Completion check shared by both signals it actually depends on: the
+    // node has to exist in Pipewire.nodes AND outputTargets has to be able to
+    // see it, which also requires AudioCards.cards to have caught up (see
+    // audioCards.js buildOutputTargets/port.inActiveProfile). Either can win
+    // the race, so both triggers below call this; it is a no-op once
+    // switching is false, so a duplicate call for the same completion is
+    // harmless.
+    function _tryCompleteSwitch(): void {
+        if (!root.switching || !root._switchTarget)
+            return
+        const fresh = root.outputTargets.find(candidate =>
+            candidate.key === root._switchTarget.key)
+        if (!fresh?.node)
+            return
+        root.setDefaultSink(fresh.node)
+        root._finishSwitch()
+    }
+
     // The node we are waiting for appears asynchronously after the profile
     // change lands. Re-check on every node list change rather than polling.
     Connections {
         target: Pipewire.nodes
         function onValuesChanged(): void {
-            if (!root.switching || !root._switchTarget)
-                return
-            const fresh = root.outputTargets.find(candidate =>
-                candidate.key === root._switchTarget.key)
-            if (!fresh?.node)
-                return
-            root.setDefaultSink(fresh.node)
-            root._finishSwitch()
+            root._tryCompleteSwitch()
         }
     }
 
@@ -437,15 +455,51 @@ Singleton {
             root.targetSwitchFailed(Translation.tr("Could not switch output"))
             root._finishSwitch()
             // Roll back so a failed switch never leaves the machine with no
-            // usable output at all.
-            if (cardName.length > 0 && previous.length > 0)
+            // usable output at all. Tracked via _reverting so this call's own
+            // outcome is observable — switching is already false at this
+            // point, so the ordinary guard below would otherwise drop it.
+            if (cardName.length > 0 && previous.length > 0) {
+                root._reverting = true
+                root._revertCardName = cardName
                 AudioCards.setCardProfile(cardName, previous)
+            }
         }
     }
 
     Connections {
         target: AudioCards
+        // outputTargets depends on AudioCards.cards as well as on the node
+        // list (see _tryCompleteSwitch above), and cards lags behind: it
+        // refreshes through pactl subscribe's debounce and a fresh `pactl
+        // list cards` spawn, not synchronously with the node appearing.
+        // Whichever of the two catches up last is the one whose change
+        // signal actually finds a usable target, so both must retry.
+        function onCardsChanged(): void {
+            root._tryCompleteSwitch()
+        }
+        function onProfileApplied(cardName: string, profileName: string): void {
+            if (!root._reverting || cardName !== root._revertCardName)
+                return
+            // The revert landed. The original failure was already reported
+            // when the timeout fired; nothing more to say.
+            root._reverting = false
+            root._revertCardName = ""
+        }
         function onProfileFailed(cardName: string, profileName: string, reason: string): void {
+            // A revert's own failure is claimed first, but only when it
+            // cannot instead be a brand new switch that started on the same
+            // card while the revert's pactl call was still running: that new
+            // call is rejected synchronously by AudioCards' own busy guard,
+            // by which point `switching` is already true again for it and
+            // its cardName equals the revert's by coincidence. `!switching`
+            // tells the two apart; when it fails, fall through so the new
+            // attempt is the one that gets reported and finished below.
+            if (root._reverting && cardName === root._revertCardName && !root.switching) {
+                root._reverting = false
+                root._revertCardName = ""
+                root.targetSwitchFailed(Translation.tr("Could not switch output, and could not restore the previous one either"))
+                return
+            }
             if (!root.switching || cardName !== root._switchCardName)
                 return
             root.targetSwitchFailed(reason)
