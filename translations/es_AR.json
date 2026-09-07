@@ -6458,5 +6458,9 @@
   "Add an Equalizer to EasyEffects output": "Add an Equalizer to EasyEffects output",
   "Use Organic visualizer": "Use Organic visualizer",
   "Start EasyEffects. iNiR will reconnect automatically when its local server becomes available.": "Start EasyEffects. iNiR will reconnect automatically when its local server becomes available.",
-  "Blocked visualizer apps": "Blocked visualizer apps"
+  "Blocked visualizer apps": "Blocked visualizer apps",
+  "Not ready": "No listo",
+  "Switch profile": "Cambiar perfil",
+  "No outputs found": "No se encontraron salidas",
+  "pactl is unavailable, so only the current device can be used": "pactl no está disponible, así que solo se puede usar el dispositivo actual"
 }
