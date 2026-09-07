@@ -187,6 +187,17 @@ Scope {
     }
 
     Connections {
+        // Listen to output-switch failures; reuses the protection banner
+        // above since the two never show at once.
+        target: Audio
+        function onTargetSwitchFailed(reason) {
+            root.protectionMessage = reason;
+            root.currentIndicator = "volume";
+            root.triggerOsd();
+        }
+    }
+
+    Connections {
         // Listen to mic volume/mute changes
         target: Audio
         function onMicVolumeChanged() {
