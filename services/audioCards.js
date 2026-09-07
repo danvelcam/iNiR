@@ -230,6 +230,14 @@ function matchStrength(node, port) {
 // for certain. Both sides are padded and compared at a token boundary, the
 // same way matchStrength does, so a stem cannot match halfway through a
 // longer word ("dock" inside "dockstation").
+//
+// The padding does NOT separate two identical USB cards, which PipeWire
+// names "..._Product-00" and "..._Product-00-2": "00" is a genuine token
+// boundary inside "00-2", so the first card's stem is a legitimate
+// whole-token match in the second card's node names and both cards score
+// the bonus. Only the device link tells those apart -- and it always can,
+// since alsa nodes always carry "device.id". Padding is a strict
+// improvement here, not the fix for that case.
 function cardAffinity(node, cardName) {
     var stem = canonicalToken(String(cardName).replace(/^alsa_card\./, ""))
     if (stem.length === 0)
@@ -319,13 +327,21 @@ function buildOutputTargets(cards, nodes) {
             // Card ownership is decided by PipeWire's own parent-child link
             // whenever both sides report an id; the name-stem heuristic only
             // fills in for node kinds that carry no "device.id" at all (and
-            // for cards pactl gave no "object.id"). A link that names a
-            // *different* card is a definite negative and ends the question:
-            // falling back to the heuristic there would let a spelling
-            // coincidence overrule a fact.
+            // for cards pactl gave no "object.id").
             var link = deviceLink(thisNodeDeviceId, cardDeviceIdByPort[t])
-            if (link === DEVICE_LINK_MATCH
-                || (link === DEVICE_LINK_UNKNOWN && cardAffinity(node, ports[t].cardName)))
+
+            // A link naming a *different* card is not a weaker candidate, it
+            // is not a candidate: PipeWire says this node hangs off other
+            // hardware. Merely withholding the bonus would leave the port
+            // competing on its raw name score and winning the node outright
+            // whenever nothing outscores it -- which happens for real when
+            // the true owner's port is momentarily absent from the polled
+            // card snapshot, the same profile-switch lag described above.
+            // Audio would come out of the wrong device.
+            if (link === DEVICE_LINK_MISMATCH)
+                continue
+
+            if (link === DEVICE_LINK_MATCH || cardAffinity(node, ports[t].cardName))
                 score += CARD_AFFINITY_BONUS
 
             if (score > bestScore) {

@@ -471,6 +471,15 @@ test("buildOutputTargets never awards affinity on a card the device link rules o
     const targets = lib.buildOutputTargets([wrongCard, owningCard], [node])
     assert.equal(targets.find(t => t.cardName === "alsa_card.aaa").node, null)
     assert.equal(targets.find(t => t.cardName === "alsa_card.bbb").node, node)
+
+    // The two assertions above only prove the ruled-out card lost a contest
+    // it was still allowed to enter: "bbb" outscores it 1007 to 12, so they
+    // would hold even if a mismatched link merely withheld the bonus. Run
+    // "aaa" on its own, with no rival to lose to, to prove what this test's
+    // name actually claims -- a card the device link rules out is not a
+    // candidate for that node at any score.
+    const alone = lib.buildOutputTargets([wrongCard], [node])
+    assert.equal(alone.find(t => t.cardName === "alsa_card.aaa").node, null)
 })
 
 test("buildOutputTargets still resolves a node that carries no device.id at all", () => {
@@ -532,4 +541,72 @@ test("parseCards reads the card's device id from object.id, not from the pulse i
     const card = lib.parseCards(payload)[0]
     assert.equal(card.index, 4600)
     assert.equal(card.deviceId, "91")
+})
+
+// Round-5 finding: round 4 detected a mismatched device link correctly but
+// only spent the verdict on the affinity bonus -- the port kept its raw
+// port-name score and went on competing, so with no rival to lose to it won
+// the node anyway. A link that names a different card is a fact about which
+// hardware the node hangs off, so it removes the port from candidacy
+// outright, exactly as a zero port-name match does.
+test("buildOutputTargets drops a node the device link rules out even with no rival", () => {
+    const card = {
+        name: "alsa_card.only_candidate", index: 8001, deviceId: "77",
+        activeProfile: "HiFi (Headphones)",
+        profiles: [{ name: "HiFi (Headphones)", priority: 100, available: true, sinks: 1 }],
+        ports: {
+            "[Out] Headphones": {
+                description: "Headphones", type: "Headphones", priority: 100,
+                availability: "available", properties: {}, profiles: ["HiFi (Headphones)"],
+            },
+        },
+    }
+    // Port name matches perfectly and nothing else in the system competes for
+    // this node -- but PipeWire says it belongs to device 999, not to this
+    // card's device 77.
+    const node = nodeStub("alsa_output.elsewhere.HiFi__Headphones__sink", "Headphones", "999")
+    const target = lib.buildOutputTargets([card], [node]).find(t => t.portName === "[Out] Headphones")
+    assert.equal(target.node, null)
+})
+
+test("buildOutputTargets does not misroute to the wrong card while the true owner's port is latent", () => {
+    // The realistic shape: the polled card snapshot lags the live graph right
+    // after a profile switch, so the dock's port is momentarily not in its
+    // active profile and never enters the assignment pass. The laptop's
+    // identically-named port is the only candidate left, and the node's name
+    // carries no laptop stem -- only the device link stands between the user
+    // and audio coming out of the wrong machine.
+    const laptop = {
+        name: "alsa_card.laptop", index: 9001, deviceId: "5",
+        activeProfile: "HiFi (Line Out)",
+        profiles: [{ name: "HiFi (Line Out)", priority: 100, available: true, sinks: 1 }],
+        ports: {
+            "[Out] Line Out": {
+                description: "Line Out", type: "Line", priority: 100,
+                availability: "available", properties: {}, profiles: ["HiFi (Line Out)"],
+            },
+        },
+    }
+    const dock = {
+        name: "alsa_card.dock", index: 9002, deviceId: "6",
+        activeProfile: "off",
+        profiles: [{ name: "HiFi (Line Out)", priority: 100, available: true, sinks: 1 }],
+        ports: {
+            "[Out] Line Out": {
+                description: "Line Out", type: "Line", priority: 100,
+                availability: "available", properties: {}, profiles: ["HiFi (Line Out)"],
+            },
+        },
+    }
+    const node = nodeStub("alsa_output.dock.HiFi-Line-Out-sink", "Line Out", "6")
+    const targets = lib.buildOutputTargets([laptop, dock], [node])
+    const laptopTarget = targets.find(t => t.cardName === "alsa_card.laptop")
+    const dockTarget = targets.find(t => t.cardName === "alsa_card.dock")
+
+    assert.equal(laptopTarget.node, null)
+    // The dock's port was not a candidate this round, so it stays latent and
+    // keeps offering the profile that would bring it back -- not silently
+    // half-assigned.
+    assert.equal(dockTarget.node, null)
+    assert.equal(dockTarget.needsProfile, "HiFi (Line Out)")
 })
