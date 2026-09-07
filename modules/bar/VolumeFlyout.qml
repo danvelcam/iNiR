@@ -53,7 +53,7 @@ StyledPopup {
                     target: masterSlider
                     property: "value"
                     value: masterSlider.modelValue
-                    when: !masterSlider.pressed
+                    when: !masterSlider.pressed && !masterSlider._userInteracting
                 }
                 onMoved: Audio.setSinkVolume(value)
             }
@@ -87,6 +87,7 @@ StyledPopup {
                     required property var modelData
 
                     readonly property bool isCurrent: modelData.node
+                        && modelData.available
                         && Audio.defaultSink
                         && modelData.node.id === Audio.defaultSink.id
                     // Selecting this row runs Audio.switchToTarget's long path: a
