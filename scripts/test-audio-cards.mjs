@@ -255,3 +255,91 @@ test("buildOutputTargets keeps every real-fixture active port mapped to its own 
     assert.equal(new Set(assignedNodes).size, assignedNodes.length)
     assert.ok(targets.every(t => !t.portName.startsWith("[In]")))
 })
+
+// Round-3 finding: the round-2 sibling veto is scoped to one card, so it does
+// nothing to stop a node from ALSO matching an identically-named port on a
+// different card -- e.g. an onboard "Line Out" and a USB dock's "Line Out".
+// Nothing before this made the matcher card-aware, so whichever port
+// happened to be checked first silently claimed the node regardless of which
+// card it actually came from. These two synthetic cards, sharing a port
+// name, are reused by both new tests below.
+const onboardCard = {
+    name: "alsa_card.onboard",
+    index: 1,
+    activeProfile: "HiFi (Line Out)",
+    profiles: [{ name: "HiFi (Line Out)", priority: 100, available: true, sinks: 1 }],
+    ports: {
+        "[Out] Line Out": {
+            description: "Line Out", type: "Line", priority: 100,
+            availability: "available", properties: {},
+            profiles: ["HiFi (Line Out)"],
+        },
+    },
+}
+const dockCard = {
+    name: "alsa_card.usb_dock",
+    index: 2,
+    activeProfile: "HiFi (Line Out)",
+    profiles: [{ name: "HiFi (Line Out)", priority: 100, available: true, sinks: 1 }],
+    ports: {
+        "[Out] Line Out": {
+            description: "Line Out", type: "Line", priority: 100,
+            availability: "available", properties: {},
+            profiles: ["HiFi (Line Out)"],
+        },
+    },
+}
+
+test("buildOutputTargets does not let a node from one card leak into another card's identically-named port", () => {
+    // Only one live node exists, and its name carries the onboard card's own
+    // stem -- it must go to onboard's target, never to the dock's.
+    const onboardNode = nodeStub("alsa_output.onboard.HiFi-Line-Out-sink", "Line Out")
+    const targets = lib.buildOutputTargets([onboardCard, dockCard], [onboardNode])
+    const onboardTarget = targets.find(t => t.cardName === "alsa_card.onboard")
+    const dockTarget = targets.find(t => t.cardName === "alsa_card.usb_dock")
+    assert.equal(onboardTarget.node, onboardNode)
+    assert.equal(dockTarget.node, null)
+    assert.notEqual(onboardTarget.node, dockTarget.node)
+})
+
+test("buildOutputTargets uses card affinity to give each card its own identically-named node", () => {
+    // Two live nodes this time, one per card. This is the case that proves
+    // affinity actually discriminates rather than just suppressing the
+    // ambiguous one: both nodes score identically on port name alone, so
+    // only the card-stem bonus can tell them apart.
+    const onboardNode = nodeStub("alsa_output.onboard.HiFi-Line-Out-sink", "Line Out")
+    const dockNode = nodeStub("alsa_output.usb_dock.HiFi-Line-Out-sink", "Line Out")
+    const targets = lib.buildOutputTargets([onboardCard, dockCard], [onboardNode, dockNode])
+    const onboardTarget = targets.find(t => t.cardName === "alsa_card.onboard")
+    const dockTarget = targets.find(t => t.cardName === "alsa_card.usb_dock")
+    assert.equal(onboardTarget.node, onboardNode)
+    assert.equal(dockTarget.node, dockNode)
+    assert.notEqual(onboardTarget.node, dockTarget.node)
+})
+
+test("buildOutputTargets still resolves when the node name carries no recognisable card stem", () => {
+    // A node name that echoes nothing about its card at all -- e.g. a
+    // Bluetooth-style node that never mentions the ALSA card path. Card
+    // affinity correctly finds nothing here; with only one card and one
+    // port in the whole system, the port-name match alone must still be
+    // enough to resolve it. This guards against the affinity mechanism
+    // turning into a new false negative for unusual naming.
+    const card = {
+        name: "alsa_card.mystery",
+        index: 3,
+        activeProfile: "HiFi (Headphones)",
+        profiles: [{ name: "HiFi (Headphones)", priority: 100, available: true, sinks: 1 }],
+        ports: {
+            "[Out] Headphones": {
+                description: "Headphones", type: "Headphones", priority: 100,
+                availability: "available", properties: {},
+                profiles: ["HiFi (Headphones)"],
+            },
+        },
+    }
+    const node = nodeStub("bluez_output.AA_BB_CC_DD_EE_FF.1.Headphones", "Headphones")
+    const targets = lib.buildOutputTargets([card], [node])
+    const headphones = targets.find(t => t.portName === "[Out] Headphones")
+    assert.equal(headphones.node, node)
+    assert.equal(headphones.needsProfile, null)
+})

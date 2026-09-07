@@ -125,11 +125,21 @@ function canonicalToken(value) {
     return String(value).toLowerCase().replace(/[\s_.-]+/g, "_").replace(/^_+|_+$/g, "")
 }
 
+// The PipeWire node name, wherever it actually lives. Shared by matchStrength
+// and cardAffinity so the two never drift apart on how they read a node.
+function nodeNameOf(node) {
+    if (!node)
+        return ""
+    var properties = node.properties || {}
+    return String(properties["node.name"] !== undefined
+        ? properties["node.name"] : (node.name || ""))
+}
+
 // Length of the canonical port name when it appears in the node name as a
 // whole token (padded token-boundary match, not a raw substring check — "Mic"
 // must not match inside "Microphone"), or 0 when it does not match at all.
-// The length is the specificity signal nodeMatchesPort ranks siblings on: a
-// node named "..._Rear_Speaker_.." satisfies both "Speaker" and "Rear
+// The length is the specificity signal buildOutputTargets ranks candidates
+// on: a node named "..._Rear_Speaker_.." satisfies both "Speaker" and "Rear
 // Speaker" as token-boundary matches, and the longer one is the real,
 // unambiguous one — matching on the description instead of node.name would
 // have the same problem and would also break the moment the card is renamed
@@ -137,9 +147,7 @@ function canonicalToken(value) {
 function matchStrength(node, port) {
     if (!node || !port)
         return 0
-    var properties = node.properties || {}
-    var nodeName = String(properties["node.name"] !== undefined
-        ? properties["node.name"] : (node.name || ""))
+    var nodeName = nodeNameOf(node)
     if (nodeName.length === 0)
         return 0
 
@@ -156,31 +164,24 @@ function matchStrength(node, port) {
     return haystack.indexOf("_" + needle + "_") !== -1 ? needle.length : 0
 }
 
-// A sink node belongs to a port when it matches (see matchStrength) AND no
-// sibling port on the same card matches at least as well. Without the
-// sibling check, a node whose name embeds more than one port's token (e.g.
-// "Rear_Speaker" embeds "Speaker") would satisfy both "Speaker" and "Rear
-// Speaker", and whichever port happened to be tried first would silently
-// claim it — a false positive that routes audio through the wrong physical
-// output, worse than not matching at all. Ambiguity is resolved by
-// specificity (the longer canonical token wins) and an exact tie fails
-// closed to neither port, rather than guessing.
-function nodeMatchesPort(node, port, siblingPorts) {
-    var strength = matchStrength(node, port)
-    if (strength === 0)
+// Whether a node's name carries the given card's own name as a stem, e.g.
+// card "alsa_card.pci-0000_00_1f.3-platform-skl_hda_dsp_generic" produces
+// nodes named "alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic....".
+// This is the only signal that can tell apart two cards that happen to
+// expose an identically-named port (two "Line Out"s, one onboard and one on
+// a USB dock): a port-name match alone cannot distinguish them, since it
+// never looks at which card the node actually came from.
+function cardAffinity(node, cardName) {
+    var stem = canonicalToken(String(cardName).replace(/^alsa_card\./, ""))
+    if (stem.length === 0)
         return false
-    if (!Array.isArray(siblingPorts))
-        return true // no sibling context supplied: unranked, back-compat behaviour
-
-    for (var i = 0; i < siblingPorts.length; i++) {
-        var other = siblingPorts[i]
-        if (other === port || other.key === port.key)
-            continue
-        if (matchStrength(node, other) >= strength)
-            return false
-    }
-    return true
+    return canonicalToken(nodeNameOf(node)).indexOf(stem) !== -1
 }
+
+// Exceeds any realistic canonical port-name length (matchStrength's return
+// value), so a same-card match always outranks a same-name match that came
+// from the wrong card, no matter how specific that wrong-card name is.
+var CARD_AFFINITY_BONUS = 1000
 
 function buildOutputTargets(cards, nodes) {
     var targets = []
@@ -189,50 +190,86 @@ function buildOutputTargets(cards, nodes) {
     var nodeList = Array.isArray(nodes) ? nodes : []
 
     var ports = outputPortsOf(cards)
+
+    // Every port becomes a target up front, unassigned. node/needsProfile are
+    // filled in once the assignment pass below has picked winners.
     for (var i = 0; i < ports.length; i++) {
-        var port = ports[i]
+        targets.push({
+            key: ports[i].key,
+            label: ports[i].label,
+            iconName: ports[i].iconName,
+            cardName: ports[i].cardName,
+            portName: ports[i].portName,
+            type: ports[i].type,
+            available: ports[i].available,
+            node: null,
+            needsProfile: null,
+        })
+    }
 
-        // Other output ports on the same card. A node's name can embed more
-        // than one port's token (e.g. "Rear_Speaker" contains "Speaker"), so
-        // nodeMatchesPort needs these to resolve the ambiguity itself rather
-        // than let the shorter, less specific name claim the node first.
-        var siblingPorts = []
-        for (var s = 0; s < ports.length; s++) {
-            if (s !== i && ports[s].cardName === port.cardName)
-                siblingPorts.push(ports[s])
-        }
+    // A node can score a token-boundary match against ports on more than one
+    // card (two cards can both have a "Line Out"), so assignment cannot be
+    // decided port-by-port -- doing so lets the same live node attach to two
+    // different cards' targets at once. Instead every node is placed in one
+    // global pass: for each node, the highest-scoring eligible target wins
+    // it outright (a tie assigns it to nobody, failing closed exactly as an
+    // ambiguous same-card match does); the score is the port-name match
+    // strength, boosted by CARD_AFFINITY_BONUS when the node's own name
+    // confirms it belongs to that port's card. If that leaves one target as
+    // the top scorer for more than one node, it keeps only the strongest of
+    // those and the rest are left unassigned rather than spilling over to
+    // whichever target came second.
+    var bestScoreByTarget = []
+    for (var z = 0; z < targets.length; z++)
+        bestScoreByTarget.push(0)
 
-        var matched = null
-        if (port.inActiveProfile) {
-            for (var j = 0; j < nodeList.length; j++) {
-                if (nodeMatchesPort(nodeList[j], port, siblingPorts)) {
-                    matched = nodeList[j]
-                    break
-                }
+    for (var n = 0; n < nodeList.length; n++) {
+        var node = nodeList[n]
+        var bestScore = 0
+        var bestTarget = -1
+        var tiedAtBest = false
+
+        for (var t = 0; t < ports.length; t++) {
+            if (!ports[t].inActiveProfile)
+                continue
+
+            var score = matchStrength(node, ports[t])
+            if (score === 0)
+                continue
+            if (cardAffinity(node, ports[t].cardName))
+                score += CARD_AFFINITY_BONUS
+
+            if (score > bestScore) {
+                bestScore = score
+                bestTarget = t
+                tiedAtBest = false
+            } else if (score === bestScore) {
+                tiedAtBest = true
             }
         }
 
+        if (bestTarget === -1 || tiedAtBest)
+            continue // no candidate, or an unresolved tie: nobody gets this node
+
+        if (bestScore > bestScoreByTarget[bestTarget]) {
+            targets[bestTarget].node = node
+            bestScoreByTarget[bestTarget] = bestScore
+        }
+    }
+
+    for (var k = 0; k < targets.length; k++) {
         var card = null
         for (var c = 0; c < cards.length; c++) {
-            if (cards[c].name === port.cardName) {
+            if (cards[c].name === ports[k].cardName) {
                 card = cards[c]
                 break
             }
         }
-
-        targets.push({
-            key: port.key,
-            label: port.label,
-            iconName: port.iconName,
-            cardName: port.cardName,
-            portName: port.portName,
-            type: port.type,
-            available: port.available,
-            node: matched,
-            // Mutually exclusive with `node` by construction: pickProfileForPort
-            // returns null whenever the port sits in the active profile.
-            needsProfile: matched !== null ? null : pickProfileForPort(card, port),
-        })
+        // Mutually exclusive with `node` by construction: pickProfileForPort
+        // returns null whenever the port sits in the active profile.
+        targets[k].needsProfile = targets[k].node !== null
+            ? null : pickProfileForPort(card, ports[k])
     }
+
     return targets
 }
