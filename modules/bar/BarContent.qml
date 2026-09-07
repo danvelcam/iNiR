@@ -460,7 +460,7 @@ Item { // Bar content region
     readonly property var _leftIds:        root._zone("left",        ["leftSidebarButton", "activeWindow"])
     readonly property var _centerLeftIds:  root._zone("centerLeft",  ["resources", "media"])
     readonly property var _centerIds:      root._zone("center",      ["workspaces"])
-    readonly property var _centerRightIds: root._zone("centerRight", ["clock", "utilButtons", "battery"])
+    readonly property var _centerRightIds: root._zone("centerRight", ["clock", "utilButtons", "battery", "volume"])
     readonly property var _rightIds:       root._zone("right",       ["rightSidebarButton", "tray", "timer", "shellUpdate", "spacer", "weather"])
 
     function _moduleVisible(id) { return Config.options?.bar?.modules?.[id] ?? true }

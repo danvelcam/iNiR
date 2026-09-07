@@ -2345,14 +2345,14 @@ Singleton {
                 //   centerRight → right central pill group (scroll, triple-tap fx)
                 //   right       → right edge section (click=right sidebar)
                 // Known ids: leftSidebarButton, activeWindow, resources, media,
-                //   workspaces, clock, utilButtons, battery, weather, tray,
+                //   workspaces, clock, utilButtons, battery, volume, weather, tray,
                 //   rightSidebarButton, timer, shellUpdate and spacer. Legacy
                 //   persisted `taskbar` ids are normalized to the activeWindow slot.
                 property JsonObject layout: JsonObject {
                     property list<string> left: ["leftSidebarButton", "activeWindow"]
                     property list<string> centerLeft: ["resources", "media"]
                     property list<string> center: ["workspaces"]
-                    property list<string> centerRight: ["clock", "utilButtons", "battery"]
+                    property list<string> centerRight: ["clock", "utilButtons", "battery", "volume"]
                     property list<string> right: ["rightSidebarButton", "tray", "timer", "shellUpdate", "spacer", "weather"]
                     property int spacerWidth: 0 // Minimum width for each flexible spacer, in px. 0 keeps it pure flex.
                     property string spacerMode: "auto" // "auto": elastic in edge zones, fixed gap in centre pills; "fill": always elastic; "fixed": always spacerWidth
