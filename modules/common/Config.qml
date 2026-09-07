@@ -2310,6 +2310,7 @@ Singleton {
                     property bool clock: true
                     property bool utilButtons: false
                     property bool battery: true
+                    property bool volume: true
                     property bool rightSidebarButton: true
                     property bool sysTray: true
                     property bool weather: true
@@ -2322,6 +2323,9 @@ Singleton {
                     property string clock: "end"
                     property string utilButtons: "end"
                     property string battery: "end"
+                }
+                property JsonObject volume: JsonObject {
+                    property bool showPercentage: false
                 }
                 // Deprecated: kept so old config.json loads without error until
                 // migration 028 removes them. Not consumed by the bar.
