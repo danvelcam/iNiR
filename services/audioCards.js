@@ -125,33 +125,61 @@ function canonicalToken(value) {
     return String(value).toLowerCase().replace(/[\s_.-]+/g, "_").replace(/^_+|_+$/g, "")
 }
 
-// A sink node belongs to a port when its PipeWire node name carries the port's
-// short name as a whole token, e.g. "HiFi__Headphones__sink" for "[Out]
-// Headphones", or "...HiFi-Line-Out-sink" for "[Out] Line Out" on a card that
-// keys its ports differently. Matching on the description instead would break
-// the moment the card is renamed or translated. Both names are canonicalised
-// and padded with the delimiter before comparing, so this is a token-boundary
-// match, not a raw substring check — "Mic" must not match inside "Microphone".
-function nodeMatchesPort(node, port) {
+// Length of the canonical port name when it appears in the node name as a
+// whole token (padded token-boundary match, not a raw substring check — "Mic"
+// must not match inside "Microphone"), or 0 when it does not match at all.
+// The length is the specificity signal nodeMatchesPort ranks siblings on: a
+// node named "..._Rear_Speaker_.." satisfies both "Speaker" and "Rear
+// Speaker" as token-boundary matches, and the longer one is the real,
+// unambiguous one — matching on the description instead of node.name would
+// have the same problem and would also break the moment the card is renamed
+// or translated.
+function matchStrength(node, port) {
     if (!node || !port)
-        return false
+        return 0
     var properties = node.properties || {}
     var nodeName = String(properties["node.name"] !== undefined
         ? properties["node.name"] : (node.name || ""))
     if (nodeName.length === 0)
-        return false
+        return 0
 
     // "[Out] Headphones" -> "Headphones"
     var shortName = port.portName.replace("[Out]", "").trim()
     if (shortName.length === 0)
-        return false
+        return 0
 
     var needle = canonicalToken(shortName)
     if (needle.length === 0)
-        return false
+        return 0
 
     var haystack = "_" + canonicalToken(nodeName) + "_"
-    return haystack.indexOf("_" + needle + "_") !== -1
+    return haystack.indexOf("_" + needle + "_") !== -1 ? needle.length : 0
+}
+
+// A sink node belongs to a port when it matches (see matchStrength) AND no
+// sibling port on the same card matches at least as well. Without the
+// sibling check, a node whose name embeds more than one port's token (e.g.
+// "Rear_Speaker" embeds "Speaker") would satisfy both "Speaker" and "Rear
+// Speaker", and whichever port happened to be tried first would silently
+// claim it — a false positive that routes audio through the wrong physical
+// output, worse than not matching at all. Ambiguity is resolved by
+// specificity (the longer canonical token wins) and an exact tie fails
+// closed to neither port, rather than guessing.
+function nodeMatchesPort(node, port, siblingPorts) {
+    var strength = matchStrength(node, port)
+    if (strength === 0)
+        return false
+    if (!Array.isArray(siblingPorts))
+        return true // no sibling context supplied: unranked, back-compat behaviour
+
+    for (var i = 0; i < siblingPorts.length; i++) {
+        var other = siblingPorts[i]
+        if (other === port || other.key === port.key)
+            continue
+        if (matchStrength(node, other) >= strength)
+            return false
+    }
+    return true
 }
 
 function buildOutputTargets(cards, nodes) {
@@ -164,10 +192,20 @@ function buildOutputTargets(cards, nodes) {
     for (var i = 0; i < ports.length; i++) {
         var port = ports[i]
 
+        // Other output ports on the same card. A node's name can embed more
+        // than one port's token (e.g. "Rear_Speaker" contains "Speaker"), so
+        // nodeMatchesPort needs these to resolve the ambiguity itself rather
+        // than let the shorter, less specific name claim the node first.
+        var siblingPorts = []
+        for (var s = 0; s < ports.length; s++) {
+            if (s !== i && ports[s].cardName === port.cardName)
+                siblingPorts.push(ports[s])
+        }
+
         var matched = null
         if (port.inActiveProfile) {
             for (var j = 0; j < nodeList.length; j++) {
-                if (nodeMatchesPort(nodeList[j], port)) {
+                if (nodeMatchesPort(nodeList[j], port, siblingPorts)) {
                     matched = nodeList[j]
                     break
                 }

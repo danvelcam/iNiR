@@ -166,3 +166,92 @@ test("buildOutputTargets resolves a multi-token port even when the node name use
     assert.notEqual(target.node, null)
     assert.equal(target.needsProfile, null)
 })
+
+// Round-2 finding: the token-boundary match alone is not enough. A node name
+// can embed more than one port's token as a whole token each -- "Rear_Speaker"
+// contains both "Speaker" and "Rear Speaker" at valid token boundaries -- so
+// without ranking by specificity the shorter, less specific port would
+// silently claim a node that belongs to a more specific sibling port. That is
+// a false positive: it would route audio through the wrong physical output,
+// which is worse than the false negative this whole matcher exists to fix.
+test("buildOutputTargets does not let a shorter port name claim a sibling's more specific node", () => {
+    const card = {
+        name: "alsa_card.synthetic-speakers",
+        index: 98,
+        activeProfile: "HiFi (Speaker, Rear Speaker)",
+        profiles: [{ name: "HiFi (Speaker, Rear Speaker)", priority: 100, available: true, sinks: 2 }],
+        ports: {
+            "[Out] Speaker": {
+                description: "Speaker", type: "Speaker", priority: 100,
+                availability: "available", properties: {},
+                profiles: ["HiFi (Speaker, Rear Speaker)"],
+            },
+            "[Out] Rear Speaker": {
+                description: "Rear Speaker", type: "Speaker", priority: 90,
+                availability: "available", properties: {},
+                profiles: ["HiFi (Speaker, Rear Speaker)"],
+            },
+        },
+    }
+    const rearNode = nodeStub(
+        "alsa_output.pci-0000_00_1f.3.HiFi__Rear_Speaker__sink", "Rear Speaker")
+    const targets = lib.buildOutputTargets([card], [rearNode])
+    const speaker = targets.find(t => t.portName === "[Out] Speaker")
+    const rearSpeaker = targets.find(t => t.portName === "[Out] Rear Speaker")
+    assert.equal(rearSpeaker.node, rearNode)
+    assert.equal(speaker.node, null)
+    assert.notEqual(speaker.node, rearSpeaker.node)
+})
+
+test("buildOutputTargets resolves the same ambiguity when the shorter name is a bare \"Out\"", () => {
+    const card = {
+        name: "alsa_card.synthetic-lineout",
+        index: 97,
+        activeProfile: "HiFi (Out, Line Out)",
+        profiles: [{ name: "HiFi (Out, Line Out)", priority: 100, available: true, sinks: 2 }],
+        ports: {
+            "[Out] Out": {
+                description: "Out", type: "Line", priority: 100,
+                availability: "available", properties: {},
+                profiles: ["HiFi (Out, Line Out)"],
+            },
+            "[Out] Line Out": {
+                description: "Line Out", type: "Line", priority: 90,
+                availability: "available", properties: {},
+                profiles: ["HiFi (Out, Line Out)"],
+            },
+        },
+    }
+    const node = nodeStub("alsa_output.pci-0000_00_1f.3.HiFi-Line-Out-sink", "Line Out")
+    const targets = lib.buildOutputTargets([card], [node])
+    const out = targets.find(t => t.portName === "[Out] Out")
+    const lineOut = targets.find(t => t.portName === "[Out] Line Out")
+    assert.equal(lineOut.node, node)
+    assert.equal(out.node, null)
+    assert.notEqual(out.node, lineOut.node)
+})
+
+test("buildOutputTargets keeps every real-fixture active port mapped to its own node", () => {
+    const cards = lib.parseCards(fixture)
+    const hdmi1 = nodeStub(
+        "alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__HDMI1__sink", "HDMI1")
+    const hdmi2 = nodeStub(
+        "alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__HDMI2__sink", "HDMI2")
+    const hdmi3 = nodeStub(
+        "alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__HDMI3__sink", "HDMI3")
+    const headphones = nodeStub(
+        "alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__Headphones__sink",
+        "Raptor Lake-P/U/H cAVS Headphones")
+    const targets = lib.buildOutputTargets(cards, [hdmi1, hdmi2, hdmi3, headphones])
+    const byPort = name => targets.find(t => t.portName === name)
+
+    assert.equal(byPort("[Out] HDMI1").node, hdmi1)
+    assert.equal(byPort("[Out] HDMI2").node, hdmi2)
+    assert.equal(byPort("[Out] HDMI3").node, hdmi3)
+    assert.equal(byPort("[Out] Headphones").node, headphones)
+
+    // No two ports share a node, and inputs (Mic1, Mic2) never surface here at all.
+    const assignedNodes = targets.map(t => t.node).filter(n => n !== null)
+    assert.equal(new Set(assignedNodes).size, assignedNodes.length)
+    assert.ok(targets.every(t => !t.portName.startsWith("[In]")))
+})
