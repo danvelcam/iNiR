@@ -368,6 +368,91 @@ Singleton {
         root.setDefaultNode(node, false)
     }
 
+    // ── Output target switching ───────────────────────────────────────────
+    // Short path: the target already has a node, so this is the existing
+    // setDefaultSink call. Long path: the target lives in another card profile,
+    // which has to be activated first. Switching profiles destroys and recreates
+    // nodes, so the new sink cannot be selected until it actually shows up —
+    // hence the wait, and hence keeping the previous profile to roll back to.
+    property bool switching: false
+    property string _switchCardName: ""
+    property string _switchPreviousProfile: ""
+    property var _switchTarget: null
+
+    signal targetSwitchFailed(string reason);
+
+    function switchToTarget(target): void {
+        if (!target || root.switching)
+            return
+
+        if (target.node) {
+            root.setDefaultSink(target.node)
+            return
+        }
+        if (!target.needsProfile) {
+            root.targetSwitchFailed(Translation.tr("Output unavailable"))
+            return
+        }
+
+        const card = AudioCards.cardFor(target.cardName)
+        root._switchCardName = target.cardName
+        root._switchPreviousProfile = card?.activeProfile ?? ""
+        root._switchTarget = target
+        root.switching = true
+
+        _switchTimeout.restart()
+        AudioCards.setCardProfile(target.cardName, target.needsProfile)
+    }
+
+    function _finishSwitch(): void {
+        _switchTimeout.stop()
+        root.switching = false
+        root._switchTarget = null
+        root._switchCardName = ""
+        root._switchPreviousProfile = ""
+    }
+
+    // The node we are waiting for appears asynchronously after the profile
+    // change lands. Re-check on every node list change rather than polling.
+    Connections {
+        target: Pipewire.nodes
+        function onValuesChanged(): void {
+            if (!root.switching || !root._switchTarget)
+                return
+            const fresh = root.outputTargets.find(candidate =>
+                candidate.key === root._switchTarget.key)
+            if (!fresh?.node)
+                return
+            root.setDefaultSink(fresh.node)
+            root._finishSwitch()
+        }
+    }
+
+    Timer {
+        id: _switchTimeout
+        interval: 2000
+        onTriggered: {
+            const cardName = root._switchCardName
+            const previous = root._switchPreviousProfile
+            root.targetSwitchFailed(Translation.tr("Could not switch output"))
+            root._finishSwitch()
+            // Roll back so a failed switch never leaves the machine with no
+            // usable output at all.
+            if (cardName.length > 0 && previous.length > 0)
+                AudioCards.setCardProfile(cardName, previous)
+        }
+    }
+
+    Connections {
+        target: AudioCards
+        function onProfileFailed(cardName: string, profileName: string, reason: string): void {
+            if (!root.switching || cardName !== root._switchCardName)
+                return
+            root.targetSwitchFailed(reason)
+            root._finishSwitch()
+        }
+    }
+
     // Internals
     PwObjectTracker {
         objects: [rawSink, sink, source]
