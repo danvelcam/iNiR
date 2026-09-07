@@ -106,10 +106,14 @@ Singleton {
                     debounce.restart()
             }
         }
-        onExited: (exitCode, _exitStatus) => {
-            // Restart on server restart, but never hot-loop on a missing binary.
-            if (exitCode !== 0)
-                return
+        onExited: (_exitCode, _exitStatus) => {
+            // pactl subscribe blocks until killed or disconnected, so it has no
+            // clean exit path: a PipeWire/pipewire-pulse restart, a suspend/resume
+            // hiccup and a missing binary all surface as a non-zero exit — exit 0
+            // is effectively unreachable. Retry unconditionally; the 2s resubscribe
+            // cooldown below is what bounds the retry (and self-heals a missing
+            // binary once it's installed), not the exit code. Without this, live
+            // updates die silently and permanently after the first hiccup.
             resubscribe.restart()
         }
     }
