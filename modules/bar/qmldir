@@ -31,4 +31,5 @@ SysTray 1.0 SysTray.qml
 TimerIndicator 1.0 TimerIndicator.qml
 TimerIndicatorTooltip 1.0 TimerIndicatorTooltip.qml
 UtilButtons 1.0 UtilButtons.qml
+VolumeFlyout 1.0 VolumeFlyout.qml
 Workspaces 1.0 Workspaces.qml
